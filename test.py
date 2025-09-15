@@ -1,1 +1,0 @@
-print("Summer 2025, let's code!")
