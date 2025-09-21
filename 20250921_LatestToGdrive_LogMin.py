@@ -17,6 +17,7 @@ TRIGGER_COMMAND = [0xAC, 0x33, 0x00]
 DATA_BUFFER = [0x00] * 7
 MAX_I2C_ERRORS = 3
 BACKUP_DAY = 1  # 月初1日にバックアップ実行
+LAST_BACKUP_RUN_FILE = "/tmp/gdrive_backup_last_run.txt"
 
 def get_sensor_file(month=None):
     """指定された年月に基づくSENSOR_FILEのパス"""
@@ -37,6 +38,23 @@ def log(message):
             f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {message}\n")
     except OSError as e:
         print(f"ログ書き込みエラー: {e}")
+
+def get_last_backup_run_date():
+    """最後にバックアップを実行した日付をファイルから取得"""
+    try:
+        with open(LAST_BACKUP_RUN_FILE, "r") as f:
+            return datetime.strptime(f.read().strip(), "%Y-%m-%d").date()
+    except (FileNotFoundError, ValueError):
+        return None
+
+def set_last_backup_run_date(date):
+    """バックアップ実行日をファイルに書き込む"""
+    try:
+        with open(LAST_BACKUP_RUN_FILE, "w") as f:
+            f.write(date.strftime("%Y-%m-%d"))
+    except OSError as e:
+        log(f"エラー: バックアップ実行日の書き込み失敗: {e}")
+
 
 def initialize_sensor(i2c_bus):
     """センサー初期化"""
@@ -156,60 +174,31 @@ def main():
     i2c = smbus.SMBus(I2C_BUS)
     dat = DATA_BUFFER.copy()
     sensor_error_count = 0
-    last_backup_day_run = None
-    backup_day_first_write_done = False
-    last_backup_run_file = "/tmp/gdrive_backup_last_run.txt"
 
     if not initialize_sensor(i2c):
         log("センサー初期化失敗。次のサイクルを試行")
         time.sleep(INTERVAL_SECONDS)
         return
 
-    def get_last_backup_run_date():
-        try:
-            with open(last_backup_run_file, "r") as f:
-                return datetime.strptime(f.read().strip(), "%Y-%m-%d").date()
-        except (FileNotFoundError, ValueError):
-            return None
-
-    def set_last_backup_run_date(date):
-        try:
-            with open(last_backup_run_file, "w") as f:
-                f.write(date.strftime("%Y-%m-%d"))
-        except OSError as e:
-            log(f"エラー: バックアップ実行日の書き込み失敗: {e}")
-
     while True:
         start_time = datetime.now()
-        current_date = start_time.date()
 
-        # 月初バックアップ処理（独立チェック）
-        last_backup_run_date = get_last_backup_run_date()
-        if current_date.day == BACKUP_DAY and last_backup_run_date != current_date:
-            log(f"処理: 月初バックアップ処理を開始")
+        # 月初バックアップ処理
+        current_date = start_time.date()
+        last_run_date = get_last_backup_run_date()
+        if current_date.day == BACKUP_DAY and last_run_date != current_date:
+            log("処理: 月初バックアップ処理を開始します。")
             if backup_monthly():
-                if not backup_day_first_write_done:
-                    results = read_sensor_data(i2c, dat)
-                    sensor_file = get_sensor_file()
-                    if results:
-                        try:
-                            os.makedirs(os.path.dirname(sensor_file), exist_ok=True)
-                            with open(sensor_file, "a") as f:
-                                f.write(results + "\n")
-                            backup_day_first_write_done = True
-                        except OSError as e:
-                            log(f"エラー: {sensor_file} 書き込み失敗: {e}")
-                    else:
-                        log("エラー: 月初バックアップ後、最初のセンサーデータ読み取りに失敗")
-                
-                last_backup_day_run = current_date
+                log("処理: 月初バックアップが正常に完了しました。")
                 set_last_backup_run_date(current_date)
             else:
-                log("警告: バックアップ処理に失敗しました。15分後に再試行します。")
+                # バックアップ失敗時は、通常のデータ取得・アップロードは行わず、
+                # 次のサイクルでバックアップを再試行する
+                log("警告: バックアップ処理に失敗しました。次のサイクルで再試行します。")
                 time.sleep(INTERVAL_SECONDS)
                 continue
 
-        # センサー読み取りと記録（無条件、エラー時のみログ）
+        # センサー読み取りと記録
         results = read_sensor_data(i2c, dat)
         if results:
             try:
@@ -236,9 +225,6 @@ def main():
         sleep_time = INTERVAL_SECONDS - process_time
         if sleep_time > 0:
             time.sleep(sleep_time)
-
-        if current_date.day != BACKUP_DAY:
-            backup_day_first_write_done = False
 
 if __name__ == "__main__":
     main()
