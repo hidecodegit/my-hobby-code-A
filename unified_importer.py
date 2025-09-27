@@ -4,7 +4,7 @@ import os
 import glob
 import subprocess
 import pandas as pd
-import mysql.connector
+from sqlalchemy import create_engine, text
 from datetime import datetime
 
 # ログ設定（ファイル出力、コンソール両対応）
@@ -73,18 +73,17 @@ def download_from_gdrive(config):
         print(f"エラー: ダウンロード失敗: {e}")
         return False
 
-def get_last_timestamp(db_config):
+def get_last_timestamp(engine):
     """DBから最新タイムスタンプ取得"""
     last_timestamp = None
     try:
-        with mysql.connector.connect(**db_config) as cnx:
-            with cnx.cursor() as cursor:
-                cursor.execute("SELECT MAX(timestamp) FROM sensor_data")
-                result = cursor.fetchone()
-                if result and result[0]:
-                    last_timestamp = pd.to_datetime(result[0])
-                logger.info(f"データベース内の最新時刻: {last_timestamp}")
-    except mysql.connector.Error as e:
+        with engine.connect() as connection:
+            query = text("SELECT MAX(timestamp) FROM sensor_data")
+            result = connection.execute(query).fetchone()
+            if result and result[0]:
+                last_timestamp = pd.to_datetime(result[0])
+            logger.info(f"データベース内の最新時刻: {last_timestamp}")
+    except Exception as e:
         logger.error(f"MySQLエラー: {e}")
     return last_timestamp
 
@@ -129,34 +128,34 @@ def _preprocess_single_chunk(chunk):
         logger.error(f"前処理エラー: {e}")
         return pd.DataFrame()
 
-def insert_to_db(df, db_config):
-    """DB挿入（UPSERT with executemany） - 責務を挿入のみに限定"""
+def insert_to_db(df, engine):
+    """DB挿入（UPSERT） - SQLAlchemy 2.0 スタイル"""
     if df.empty:
         return 0
     
     inserted_count = 0
     try:
-        with mysql.connector.connect(**db_config) as cnx:
-            with cnx.cursor() as cursor:
-                insert_query = """
-                INSERT INTO sensor_data (timestamp, temperature, humidity)
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                    temperature = VALUES(temperature),
-                    humidity = VALUES(humidity);
-                """
-                data_tuples = [tuple(row) for row in df.values]
-                cursor.executemany(insert_query, data_tuples)
-                cnx.commit()
-                inserted_count = cursor.rowcount
-                logger.info(f"{inserted_count} 行を挿入/更新しました。")
-                print(f"    {inserted_count} 行を挿入/更新しました。")
-    except mysql.connector.Error as e:
+        data_dicts = df.to_dict(orient='records')
+        
+        with engine.connect() as connection:
+            insert_query = text("""
+            INSERT INTO sensor_data (timestamp, temperature, humidity)
+            VALUES (:timestamp, :temperature, :humidity)
+            ON DUPLICATE KEY UPDATE
+                temperature = VALUES(temperature),
+                humidity = VALUES(humidity);
+            """)
+            result = connection.execute(insert_query, data_dicts)
+            connection.commit()
+            inserted_count = result.rowcount
+            logger.info(f"{inserted_count} 行を挿入/更新しました。")
+            print(f"    {inserted_count} 行を挿入/更新しました。")
+    except Exception as e:
         logger.error(f"DB挿入エラー: {e}")
     
     return inserted_count
 
-def process_files(filepaths, db_config, last_timestamp, chunksize=None):
+def process_files(filepaths, engine, last_timestamp, chunksize=None):
     """ファイル/ディレクトリ処理（複数/単一対応）"""
     if isinstance(filepaths, str) and os.path.isdir(filepaths):
         filepaths = glob.glob(os.path.join(filepaths, 'temp_humid_*.txt'))
@@ -200,7 +199,7 @@ def process_files(filepaths, db_config, last_timestamp, chunksize=None):
                 logger.info(f"ファイル '{filepath}' に新しいデータがありません。スキップします。")
                 continue
             
-            inserted = insert_to_db(df, db_config)
+            inserted = insert_to_db(df, engine)
             total_inserted += inserted
             if inserted > 0:
                 total_files += 1
@@ -213,18 +212,15 @@ def process_files(filepaths, db_config, last_timestamp, chunksize=None):
     print(f"\n合計処理ファイル数: {total_files}、合計挿入/更新行数: {total_inserted}")
     return total_inserted
 
-def show_summary(db_config):
+def show_summary(engine):
     """インポート後統計表示"""
     try:
-        with mysql.connector.connect(**db_config) as cnx:
-            df_summary = pd.read_sql(
-                "SELECT AVG(temperature) as avg_temp, AVG(humidity) as avg_humid, COUNT(*) as total_rows FROM sensor_data",
-                cnx
-            )
-            if not df_summary.empty:
-                stats = df_summary.iloc[0]
-                logger.info(f"全体統計: 総行数={stats['total_rows']:,}, 平均温度={stats['avg_temp']:.2f}℃, 平均湿度={stats['avg_humid']:.2f}%")
-                print(f"\n全体統計: 総行数={stats['total_rows']:,}, 平均温度={stats['avg_temp']:.2f}℃, 平均湿度={stats['avg_humid']:.2f}%")
+        query = text("SELECT AVG(temperature) as avg_temp, AVG(humidity) as avg_humid, COUNT(*) as total_rows FROM sensor_data")
+        df_summary = pd.read_sql(query, engine)
+        if not df_summary.empty:
+            stats = df_summary.iloc[0]
+            logger.info(f"全体統計: 総行数={stats['total_rows']:,}, 平均温度={stats['avg_temp']:.2f}℃, 平均湿度={stats['avg_humid']:.2f}%")
+            print(f"\n全体統計: 総行数={stats['total_rows']:,}, 平均温度={stats['avg_temp']:.2f}℃, 平均湿度={stats['avg_humid']:.2f}%")
     except Exception as e:
         logger.warning(f"統計取得エラー: {e}")
 
@@ -259,11 +255,15 @@ def main():
         logger.error("データベースのパスワードが設定されていません。環境変数 'DB_PASSWORD' を設定してください。")
         return
 
-    last_timestamp = get_last_timestamp(db_config)
-    total_inserted = process_files(filepaths, db_config, last_timestamp, args.chunksize)
+    # SQLAlchemyエンジン作成
+    db_uri = f"mysql+mysqlconnector://{db_config['user']}:{db_config['password']}@{db_config['host']}/{db_config['database']}"
+    engine = create_engine(db_uri)
+
+    last_timestamp = get_last_timestamp(engine)
+    total_inserted = process_files(filepaths, engine, last_timestamp, args.chunksize)
     
     if total_inserted > 0:
-        show_summary(db_config)
+        show_summary(engine)
     
     logger.info(f"処理完了: 合計 {total_inserted} 行を挿入/更新しました。")
     print("\nデータ同期と挿入処理が完了しました。")
