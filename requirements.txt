@@ -4,4 +4,6 @@ SQLAlchemy
 PyMySQL
 matplotlib
 seaborn
-
+requests
+imageio
+Pillow
