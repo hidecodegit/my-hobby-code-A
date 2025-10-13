@@ -1,1 +1,0 @@
-SELECT * FROM measurements LIMIT 5;
