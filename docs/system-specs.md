@@ -3,7 +3,7 @@
 本ドキュメントは、PiPulseパイプラインのハードウェア、ソフトウェア、および関連設定を管理するシステム仕様書兼インベントリです。
 
 **最終更新:** 2025-10-19
-**バージョン:** v1.1.1 (Mac Python環境を3.9.23に確定、MySQL 9.3.0更新、依存テーブル追加、シェル表示問題の無視補足)
+**バージョン:** v1.1.2 (スクリプト名統一、cronエントリ更新)
 **担当者:** Hideo Kataoka (with Grok & Gemini assist)
 
 ## 1. ハードウェア (Hardware Inventory)
@@ -45,7 +45,7 @@
 
 ### 2.2. Python 依存関係
 
-Raspberry Pi上の `SensorSync.py` (v1.2.0) は、標準ライブラリと `smbus` のみを使用します。
+Raspberry Pi上の `20251019_SensorSync.py` (v1.2.1) は、標準ライブラリと `smbus` のみを使用します。
 
 |ライブラリ|RPi (3.7.3) バージョン|用途                |
 |---|---|---|
@@ -63,9 +63,9 @@ Mac側の分析環境では、`pandas`, `numpy`, `matplotlib`, `mysql-connector-
 ### 2.3. その他ツール
 - **開発環境 (Mac)**: VSCode + Python拡張機能
 - **RPi 運用**:
-  - **スケジューラ**: `cron` を使用し、15分間隔で `SensorSync.py` を実行。
-    - `*/15 * * * * /usr/bin/python3 /home/hideo_81_g/workspace/SensorSync.py`
-  - **デプロイ**: RealVNC経由での手動ファイル転送。
+  - **スケジューラ**: `cron` を使用し、15分間隔で `20251019_SensorSync.py` を実行。
+    - `*/15 * * * * /usr/bin/python3 /home/hideo_81_g/workspace/20251019_SensorSync.py >> /dev/null 2>&1`
+  - **デプロイ**: RealVNC経由での手動ファイル転送、または `scp` コマンド。
 - **データ同期**: `rclone` v1.69.0
   - **リモート**: `raspi_data` (Google Drive)
   - **設定**: 帯域幅制限 `200k` を適用。
@@ -76,19 +76,20 @@ Mac側の分析環境では、`pandas`, `numpy`, `matplotlib`, `mysql-connector-
 
 - **V字プロセスリンク**:
   - `SYS.2`: 本ドキュメントはシステム設計 (`system-design.md`) のスペック定義に相当。
-  - `SWE.3`: `SensorSync.py` の実装は本ドキュメントの依存関係に従う。
+  - `SWE.3`: `20251019_SensorSync.py` の実装は本ドキュメントの依存関係に従う。
   - `SUP.7`: コミットメッセージルール (feat/fix/refactor) を適用。
 - **潜在リスクと対策**:
-  - **I2C/センサーエラー**: `SensorSync.py` 内でエラーカウンタを設け、3回連続でエラーが発生した場合にセンサーを再初期化。
+  - **I2C/センサーエラー**: `20251019_SensorSync.py` 内でエラーカウンタを設け、3回連続でエラーが発生した場合にセンサーを再初期化。
   - **メモリ不足 (RPi)**: データの一時保存にRAMディスク (`/tmp/sensor_data`) を使用し、SDカードへの書き込みを抑制。
   - **データ同期エラー**: `rclone` 実行時にリトライ処理（指数バックオフ）を実装。
 
 ## 4. 更新履歴
 
-|日付        |バージョン |変更内容                                                                                          |担当者                        |
+|日付 |バージョン |変更内容 |担当者 |
 |---|---|---|---|
+|2025-10-19|v1.1.2|スクリプト名を`20251019_SensorSync.py`に統一、cronエントリ/リンク更新。 |Hideo Kataoka (Grok assist)|
 |2025-10-19|v1.1.1|Mac Python環境をconda `my_hobby_env` (3.9.23, pip 25.2)で最終確認。MySQL 9.3.0更新、依存テーブル追加、シェル表示問題の無視補足。|Hideo Kataoka (Grok assist)|
-|2025-10-19|v1.1.0|`SensorSync.py` (v1.2.0) の内容を反映し、ドキュメント全体を簡素化。                                                |Hideo Kataoka (Grok/Gemini)|
-|2025-10-18|v1.0.0|初版作成 (RPi4/Python3.7.3基準)。                                                                    |Hideo Kataoka (Grok/Gemini)|
+|2025-10-19|v1.1.0|`SensorSync.py` (v1.2.0) の内容を反映し、ドキュメント全体を簡素化。 |Hideo Kataoka (Grok/Gemini)|
+|2025-10-18|v1.0.0|初版作成 (RPi4/Python3.7.3基準)。 |Hideo Kataoka (Grok/Gemini)|
 
 ---

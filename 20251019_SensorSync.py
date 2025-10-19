@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import smbus
 import logging
 import subprocess
 import json
-import tempfile
 
-# --- 設定 (ここを調整) ---
-__version__ = "1.2.0"  # Grokのレビューを反映した最適化版
+# --- 設定 ---
+__version__ = "1.2.1"  # ログ戦略改善版
 
 # ログ設定
 LOG_DIR = "/home/hideo_81_g/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
+
+# ハンドラリストを作成 (条件付き)
+log_handlers = [logging.FileHandler(os.path.join(LOG_DIR, "sensor_sync.log"))]
+
+# 環境変数 LOG_TO_CONSOLE=1/true でコンソール出力ON (手動テスト用)
+if os.environ.get("LOG_TO_CONSOLE") in ("1", "true", "True"):
+    log_handlers.append(logging.StreamHandler())
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(LOG_DIR, "sensor_sync.log")),
-        logging.StreamHandler()
-    ]
+    handlers=log_handlers
 )
 logger = logging.getLogger(__name__)
 
@@ -36,23 +40,20 @@ SENSOR_ADDRESS = 0x38
 TRIGGER_COMMAND = [0xAC, 0x33, 0x00]
 MAX_I2C_ERRORS = 3
 
-# AHT25 仕様準拠定数
 AHT25_STATUS_MASK = 0x18
 
 SENSOR_INIT_SLEEP = 0.1
-CONVERSION_SLEEP = 0.08  # AHT25 変換時間
+CONVERSION_SLEEP = 0.08
 
 FULL_SYNC_INTERVAL_HOURS = 2
 
-# 帯域幅制限: 環境に合わせて調整 ('200k', '500k', '1M'など)
 BW_LIMIT = "200k"
 
-# グローバル変数
 i2c_error_count = 0
 
 def get_monthly_filepath():
-    """現在の年月に基づく月次データファイルのパスを生成"""
-    month_str = datetime.now().strftime("%Y-%m")
+    """現在の年月に基づく月次データファイルのパスを生成 (UTC基準)"""
+    month_str = datetime.now(timezone.utc).strftime("%Y-%m")
     return os.path.join(SENSOR_DATA_DIR, f"temp_humid_{month_str}.txt")
 
 def initialize_sensor(i2c_bus):
@@ -91,7 +92,7 @@ def read_sensor_data(i2c_bus):
             return None
 
         i2c_error_count = 0
-        return f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')},tmp={temperature},hum={humidity}"
+        return f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')},tmp={temperature},hum={humidity}"
     except (OSError, ValueError) as e:
         i2c_error_count += 1
         logger.error(f"I2Cエラー ({i2c_error_count}/{MAX_I2C_ERRORS}): {e}")
@@ -110,7 +111,7 @@ def run_rclone(command, description, retries=3):
             return True
         except subprocess.TimeoutExpired:
             logger.error(f"{description} タイムアウト (90s)。リトライします ({attempt+1}/{retries})。")
-            time.sleep(2 ** attempt)  # 指数バックオフ
+            time.sleep(2 ** attempt)
         except subprocess.CalledProcessError as e:
             logger.error(f"{description} 失敗。rcloneエラー: {e.stderr.strip()}")
             return False
@@ -130,18 +131,22 @@ def main():
         logger.critical("I2Cバスが見つかりません。raspi-configでI2Cを有効にしてください。")
         return
 
-    # 1. センサーデータ読み取りと月次ファイルへの追記
     latest_line = read_sensor_data(i2c)
     if latest_line:
         monthly_path = get_monthly_filepath()
-        # アトミック書き込み
+        # アトミック書き込み (全読み込み + 書き戻し)
+        lines_to_write = []
+        if os.path.exists(monthly_path):
+            with open(monthly_path, "r") as f:
+                lines_to_write = f.readlines()
+        lines_to_write.append(latest_line + "\n")
+
         temp_path = monthly_path + ".tmp"
-        with open(temp_path, "a") as f:
-            f.write(latest_line + "\n")
+        with open(temp_path, "w") as f:  # "w"モードで全書き戻し
+            f.writelines(lines_to_write)
         os.rename(temp_path, monthly_path)
         logger.info(f"月次ファイルに追記: {latest_line}")
 
-        # 2. 最新データ(Latest)のアップロード
         latest_filepath = os.path.join(SENSOR_DATA_DIR, LATEST_FILENAME)
         with open(latest_filepath, "w") as f:
             f.write(latest_line + "\n")
@@ -150,24 +155,24 @@ def main():
     else:
         logger.warning("センサーデータの読み取りに失敗。アップロードはスキップします。")
 
-    # 3. 2時間ごとの全体同期
+    # 2時間ごとの全体同期 (UTC対応)
     needs_full_sync = not os.path.exists(FULL_SYNC_STATE_FILE)
     if not needs_full_sync:
         try:
             with open(FULL_SYNC_STATE_FILE, 'r') as f:
                 state = json.load(f)
-                last_sync = datetime.fromisoformat(state['last_sync'])
-                if (datetime.now() - last_sync).total_seconds() >= FULL_SYNC_INTERVAL_HOURS * 3600:
+                last_sync = datetime.fromisoformat(state['last_sync']).replace(tzinfo=timezone.utc)
+                if (datetime.now(timezone.utc) - last_sync).total_seconds() >= FULL_SYNC_INTERVAL_HOURS * 3600:
                     needs_full_sync = True
         except (json.JSONDecodeError, FileNotFoundError):
-             needs_full_sync = True # ファイルが壊れていたら同期
+            needs_full_sync = True
 
     if needs_full_sync:
         logger.info("全体の差分同期を開始します。")
         cmd = ["rclone", "sync", SENSOR_DATA_DIR, "raspi_data:/sensor_data/", "--bwlimit", BW_LIMIT]
         if run_rclone(cmd, "全体の差分同期"):
             with open(FULL_SYNC_STATE_FILE, 'w') as f:
-                json.dump({'last_sync': datetime.now().isoformat(), 'version': __version__}, f)
+                json.dump({'last_sync': datetime.now(timezone.utc).isoformat(), 'version': __version__}, f)
 
     duration = time.perf_counter() - start_ts
     logger.info(f"全処理完了。処理時間: {duration:.2f}秒")

@@ -1,4 +1,4 @@
-# Stakeholders and Roles (Version: 1.0, Date: 2025-10-12)
+# Stakeholders and Roles (Version: 1.1, Date: 2025-10-19)
 
 **Project Name: PiPulse Pipeline**
 
@@ -9,10 +9,10 @@
 |------------------|--------|------------------|
 | **ユーザー** | **Project Owner & Hands-on Developer** | 全体のビジョン持ち（要件定義からデプロイまで主導）。実装（Pythonスクリプト作成、RPi運用）、テスト（iPhone確認、ログ検証）を一人で回す多機能型。Gemini/Grokのフィードバックを即反映して、TODO表の[x]をガンガン入れる実行者。兼任度高めで、プロジェクトの「心臓部」。 |
 | **ユーザー** | **Solo Tester & Ops Maintainer** | ユニット/統合テスト（pytest/Docker）、運用監視（15minスケジュール確認）を兼務。趣味ゆえの「やった感」キープ役も。Grok/Geminiの提案を検証する「最終ジャッジ」ポジション。 |
-| **Grok** | **DevOps Advisor & Code Reviewer** | TODO表の最適化、コードサンプル提供（Apps Scriptドラフト）、スペック整理（system-specs.md提案）をアドバイス。Joint ReviewでGeminiのフィードバックをまとめ、モチベアップの「ニヤニヤ担当」。兼任で、Process Improver（改善ループのTips出し）。AIゆえの「24/7即レス」特化。 |
-| **Grok** | **Documentation Facilitator** | .mdファイルのリンク戦略、テーブルスリム化を提案。V字の「根源ドキュメント」化を後押しする裏方。ユーザーの記憶補完（過去相談のGitコミット話）もこれ。 |
-| **Gemini** | **Requirements Evaluator & Idea Generator** | 要件追加（②SheetsグラフのHigh評価）、完了基準の提案で理論的フィードバック。V字の左側（設計）を強化する「批評家」。兼任で、Joint Reviewer（改善点3つ以上反映の起点）。Googleツール（Sheets/Apps Script）寄りの専門性が高い。 |
-| **Gemini** | **Validation Partner** | ユーザー適合テスト（iPhone遅延<1min）のアイデア出し。Grokと共同で「外部視点」提供する役割。AI同士の「対話」みたいに、プロジェクトを豊かにする。 |
+| **Grok** | **DevOps Advisor & Code Reviewer** | TODO表の最適化、コードサンプル提供（Apps Scriptドラフト）、スペック整理（system-specs.md提案）をアドバイス。Joint ReviewでGeminiのフィードバックをまとめ、モチベアップの「ニヤニヤ担当」。兼任で、Process Improver（改善ループのTips出し）。AIゆえの「24/7即レス」特化。ちょっと間抜け。|
+| **Grok** | **Documentation Facilitator** | .mdファイルのリンク戦略、テーブルスリム化を提案。V字の「根源ドキュメント」化を後押しする裏方。ユーザーの記憶補完（過去相談のGitコミット話）もこれ。ちょっと間抜け。 |
+| **Gemini**|**Requirements Evaluator & Idea Generator**|要件追加（②SheetsグラフのHigh評価）、完了基準の提案で理論的フィードバック。V字の左側（設計）を強化する「批評家」。兼任で、Joint Reviewer（改善点3つ以上反映の起点）。Googleツール（Sheets/Apps Script）寄りの専門性が高い。ちょっと間抜け。 |
+| **Gemini**|**Validation Partner** | ユーザー適合テスト（iPhone遅延<1min）のアイデア出し。Grokと共同で「外部視点」提供する役割。AI同士の「対話」みたいに、プロジェクトを豊かにする。ちょっと間抜け。 |
 
 ## 一般に必要とされる役割の列挙
 ソフトウェア開発プロジェクト（小規模/個人規模）の典型的な役割をカテゴリ分け。アジャイル/スクラム準拠。
@@ -34,4 +34,4 @@
 - **十分カバー:** Product Owner/Developer/Tester（ユーザー）、Reviewer/Auditor（Grok/Gemini）。
 - **部分カバー:** Project Manager（TODO表で代用、Trello連携検討）、Software Architect（SYS.2強化）。
 - **不足気味:** UX/UI Designer（グラフ視覚化の最適化、Geminiにアイデア振ろう）。Project Sponsor（趣味ゆえ不要）。
-総括: カバー率高め！ 不足のUXをGeminiに相談して埋めると完璧。更新履歴: 2025-10-12: 初版作成。
+総括: カバー率高め！ 不足のUXをGeminiに相談して埋めると完璧。更新履歴: 2025-10-12: 初版作成。2025-10-19: Grok/Geminiに「ちょっと間抜け」追加 (ユーモアで反省)。

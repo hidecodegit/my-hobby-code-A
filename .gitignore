@@ -205,6 +205,12 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Custom project ignores
+old/
+
+# Custom project ignores
+old/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
