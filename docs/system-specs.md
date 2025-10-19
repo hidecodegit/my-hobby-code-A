@@ -3,7 +3,7 @@
 本ドキュメントは、PiPulseパイプラインのハードウェア、ソフトウェア、および関連設定を管理するシステム仕様書兼インベントリです。
 
 **最終更新:** 2025-10-19
-**バージョン:** v1.1.0 (SensorSync.py v1.2.0 の内容を反映し全体を簡素化)
+**バージョン:** v1.1.1 (Mac Python環境を3.9.23に確定、MySQL 9.3.0更新、依存テーブル追加、シェル表示問題の無視補足)
 **担当者:** Hideo Kataoka (with Grok & Gemini assist)
 
 ## 1. ハードウェア (Hardware Inventory)
@@ -28,7 +28,7 @@
 
 ### 1.3. MySQLサーバー (データベース)
 - **ホスト**: localhost (Mac, ポート: 3306)
-- **バージョン**: 9.2.0 (Homebrew)
+- **バージョン**: 9.3.0 (Homebrew, macos15.4 on arm64)
 - **DB概要**: sensor_data_db (InnoDBエンジン)
   - **主要テーブル**: `measurements` (timestamp, temperature, humidity)
   - *補足: 定期的なバックアップ (`mysqldump`) を推奨。*
@@ -37,19 +37,28 @@
 
 ### 2.1. OS / ランタイム
 - **Python**:
-  - **Mac (開発環境)**: 3.9.6 (conda `pipulse` env)
+  - **Mac (開発環境)**: 3.9.23 (conda `my_hobby_env` env, pip 25.2)
+    - *補足: `python`/`pip`を優先使用。`python3`/`pip3`のwhich/バージョン表示がシステム版（3.9.6）を示す場合があるが、実際の実行はconda環境（3.9.23）が優先されるため、無視可能。機能テスト（e.g., `python -c "import sys; print(sys.version)"`）で確認推奨。*
   - **RPi (実行環境)**: 3.7.3 (system)
-- **MySQL**: 9.2.0
+    - *補足: Mac/RPi間のPythonバージョン差による互換性確認を定期的に（e.g., pickleシリアライズ）。*
+- **MySQL**: 9.3.0
 
 ### 2.2. Python 依存関係
 
 Raspberry Pi上の `SensorSync.py` (v1.2.0) は、標準ライブラリと `smbus` のみを使用します。
 
-| ライブラリ | RPi (3.7.3) バージョン | 用途 |
+|ライブラリ|RPi (3.7.3) バージョン|用途                |
 |---|---|---|
-| smbus | 1.1.2 (OS依存) | I2Cセンサー通信 (aptで管理) |
+|smbus|1.1.2 (OS依存)     |I2Cセンサー通信 (aptで管理)|
 
 Mac側の分析環境では、`pandas`, `numpy`, `matplotlib`, `mysql-connector-python` などを使用します。
+
+|ライブラリ                 |Mac (3.9.23) バージョン|用途   |
+|---|---|---|
+|pandas                |2.3.2             |データ分析|
+|numpy                 |2.0.2             |数値計算 |
+|matplotlib            |3.9.4             |グラフ描画|
+|mysql-connector-python|9.4.0             |DB接続 |
 
 ### 2.3. その他ツール
 - **開発環境 (Mac)**: VSCode + Python拡張機能
@@ -76,9 +85,10 @@ Mac側の分析環境では、`pandas`, `numpy`, `matplotlib`, `mysql-connector-
 
 ## 4. 更新履歴
 
-|日付 |バージョン |変更内容 |担当者 |
+|日付        |バージョン |変更内容                                                                                          |担当者                        |
 |---|---|---|---|
-|2025-10-19|v1.1.0|`SensorSync.py` (v1.2.0) の内容を反映し、ドキュメント全体を簡素化。|Hideo Kataoka (Grok/Gemini)|
-|2025-10-18|v1.0.0|初版作成 (RPi4/Python3.7.3基準)。|Hideo Kataoka (Grok/Gemini)|
+|2025-10-19|v1.1.1|Mac Python環境をconda `my_hobby_env` (3.9.23, pip 25.2)で最終確認。MySQL 9.3.0更新、依存テーブル追加、シェル表示問題の無視補足。|Hideo Kataoka (Grok assist)|
+|2025-10-19|v1.1.0|`SensorSync.py` (v1.2.0) の内容を反映し、ドキュメント全体を簡素化。                                                |Hideo Kataoka (Grok/Gemini)|
+|2025-10-18|v1.0.0|初版作成 (RPi4/Python3.7.3基準)。                                                                    |Hideo Kataoka (Grok/Gemini)|
 
 ---
