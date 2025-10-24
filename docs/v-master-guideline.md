@@ -1,25 +1,95 @@
-**プロジェクト名: PiPulse Pipeline (V字プロセス適用中)**
+## PiPulse Pipeline: V-Model Master Guideline
 
-|プロセス名                                 |TODOステップ                                                                                                                                                                                                                                                                                                                                |Notes                                                                                                                                                                                                                                                                                                                   |
-|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|SYS.1: 要件定義（機能/非機能要件リスト）              |[x] High: ②要件追加（リアルタイム更新&lt;1min）。テンプレートに肉付け（参照: 7月192件データ）。（基準: 要件リストに②ID追加、Gemini評価でOK）                                                                                                                                                                                                                                                  |- **[requirements.md](docs/requirements.md)**&lt;br&gt;機能/非機能要件の詳細リスト（FR-01~05, NFR-01~05, v1.1: ②High追加 + 異常値具体化）。                                                                                                                                                                                                           |
-|SYS.2: システム設計（全体フロー設計）                |[ ] Medium: データフロー図更新（Drive→Sheets sync）。（基準: テキスト図で②レイヤー記述、Notesに保存）                                                                                                                                                                                                                                                                   |- **[system-design.md](docs/system-design.md)**&lt;br&gt;全体フロー図とデータフロー。&lt;br&gt;- **[system-specs.md](docs/system-specs.md)**&lt;br&gt;環境スペック/依存関係まとめ（ハード: RPi4, ソフト: Python3.11）。                                                                                                                                                       |
-|SYS.3: 詳細設計（部品/I2C仕様 + Sheetsインターフェース）|[ ] Medium: ②仕様追加（グラフ: 折れ線、異常値ハイライト）。（基準: インターフェース定義書に②フォーマット記述、7月データサンプル適用）&lt;br&gt;[x] （I2C基本済み）                                                                                                                                                                                                                                           |- **[detailed-design.md](docs/detailed-design.md)**&lt;br&gt;I2C/Sheetsインターフェース仕様。&lt;br&gt;参照: system-specs.md のMySQLセクション。                                                                                                                                                                                                        |
-|SWE.1: SW要件分析（コード要件派生）                |[ ] Low: トレーサビリティ表拡張（②ID: MySQL pull）。（基準: 表でSYS.1②とリンク、要件派生5件以上）                                                                                                                                                                                                                                                                       |- **[sw-requirements.md](docs/sw-requirements.md)**&lt;br&gt;SW派生要件とトレーサビリティ表。                                                                                                                                                                                                                                                |
-|SWE.2: SW設計（モジュール設計）                  |[ ] Medium: ②関数図追加（main → plot_data）。（基準: テキストUMLで②フロー描画、PlantUMLアプリでエクスポート）&lt;br&gt;[x] （基本モジュール済み）                                                                                                                                                                                                                                         |- **[sw-design.md](docs/sw-design.md)**&lt;br&gt;モジュール/関数UML図。                                                                                                                                                                                                                                                                |
-|SWE.3: 実装（コード + ②改善）                  |[ ] High: Sheets Apps Script作成（Drive→Sheets）。（基準: スクリプト実行でテストデータがSheetsに同期、iPhoneアプリで確認）&lt;br&gt;[ ] Medium: 可視化改善1（X軸調整 + フォント）。（基準: matplotlibグラフ生成、Xラベルクリア&日本語表示OKのPNG出力）&lt;br&gt;[ ] Medium: リアルタイム連動（MySQL→plot）。（基準: 15分スケジュールでMySQL pull&plot、192件データで更新確認）&lt;br&gt;[ ] Low: 先進視覚化（極座標/3D螺旋）。（基準: 新プロット生成、iPhoneブラウザでインタラクティブ表示）&lt;br&gt;[x] （基本実装済み）|- **[implementation.md](docs/implementation.md)**&lt;br&gt;コードスニペットと改善履歴。&lt;br&gt;- **[20251001_LatestToGdrive.py](src/20251001_LatestToGdrive.py)**&lt;br&gt;最新Driveアップロードスクリプト（15min収集/2h sync/月替わりバックアップ）。&lt;br&gt;参照: system-specs.md のPythonセクション。                                                                                       |
-|ユニットテスト（関数検証）                         |[ ] Medium: pytestで②テスト（異常値抽出）。カバレッジ80%。（基準: CIログで80%超え、②関数通過率100%）                                                                                                                                                                                                                                                                     |- **[unit-tests.md](docs/unit-tests.md)**&lt;br&gt;pytestスクリプトとカバレッジレポート。                                                                                                                                                                                                                                                     |
-|統合テスト（連携検証）                           |[ ] Medium: Dockerで②エンドツーエンド（iPhone表示）。（基準: テスト実行でDrive→Sheets→グラフ表示成功、スクショ保存）                                                                                                                                                                                                                                                          |- **[integration-tests.md](docs/integration-tests.md)**&lt;br&gt;エンドツーエンドテスト手順とログ。                                                                                                                                                                                                                                            |
-|システムテスト（全体フロー検証）                      |[ ] Low: スケジュールテスト（処理時間&lt;10s）。（基準: ログで平均8s以内、②グラフ更新確認）&lt;br&gt;[x] （運用順調）                                                                                                                                                                                                                                                                     |- **[system-tests.md](docs/system-tests.md)**&lt;br&gt;全体フロー検証結果。&lt;br&gt;参照: system-specs.md のDockerセクション。                                                                                                                                                                                                                        |
-|受け入れテスト（要件適合確認）                       |[ ] Low: ②グラフ比較（7月データで）。（基準: Sheetsグラフで192件推移表示、異常値ハイライトOK）&lt;br&gt;[x] （基本確認済み）                                                                                                                                                                                                                                                             |- **[acceptance-tests.md](docs/acceptance-tests.md)**&lt;br&gt;要件適合チェックリスト。                                                                                                                                                                                                                                                   |
-|SUP.1: Quality Assurance（品質監査）        |[ ] High: Actions ci.ymlでpytest追加（②含む）。（基準: GitHub Actions実行でSuccessバッジ、②テスト通過）                                                                                                                                                                                                                                                         |- **[qa-plan.md](docs/qa-plan.md)**&lt;br&gt;品質メトリクスと監査計画。                                                                                                                                                                                                                                                                    |
-|SUP.2: Verification（レビュー）             |[ ] Low: PRでCodeQLスキャン。（基準: PRマージでセキュリティクリア、②コードレビューコメント0）                                                                                                                                                                                                                                                                              |- **[verification.md](docs/verification.md)**&lt;br&gt;レビュー/スキャン結果。                                                                                                                                                                                                                                                           |
-|SUP.3: Validation（ユーザー適合）             |[ ] Medium: ②Sheets共有リンクテスト。（基準: iPhoneアプリでリアルタイムグラフ表示、更新遅延&lt;1min）                                                                                                                                                                                                                                                                       |- **[validation.md](docs/validation.md)**&lt;br&gt;ユーザー適合テストログ。                                                                                                                                                                                                                                                               |
-|SUP.4: Joint Review（共同レビュー）           |[ ] Low: ②改善案をGemini評価。（基準: フィードバック共有、改善点3つ以上反映）                                                                                                                                                                                                                                                                                        |- **[joint-review.md](docs/joint-review.md)**&lt;br&gt;フィードバックまとめ。&lt;br&gt;- **[stakeholders-roles.md](docs/stakeholders-roles.md)**&lt;br&gt;ステークホルダー役割と不足チェック（Grok/Geminiのレビュー基盤）。                                                                                                                                                     |
-|SUP.5: Audit（ログ監査）                    |[ ] Medium: Slackアラート追加（②グラフ失敗）。（基準: テストエラーでSlack通知到着、ログに記録）                                                                                                                                                                                                                                                                            |- **[audit.md](docs/audit.md)**&lt;br&gt;ログ監査レポート。                                                                                                                                                                                                                                                                            |
-|SUP.6: Product Acceptance（受入 + デプロイ）  |[ ] High: deploy.yml作成（SSH + systemd、②同期）。（基準: mainプッシュでラズパイ再起動&②グラフ更新確認）                                                                                                                                                                                                                                                               |- **[product-acceptance.md](docs/product-acceptance.md)**&lt;br&gt;デプロイ手順と受入基準。                                                                                                                                                                                                                                               |
-|SUP.7: Configuration（バージョン管理）         |[ ] Low: Dependabot PR設定。（基準: 自動PR生成、ライブラリ更新1件適用）&lt;br&gt;[x] （Git使用中）                                                                                                                                                                                                                                                                       |- **[configuration.md](docs/configuration.md)**&lt;br&gt;バージョン管理ルール（コミットメッセージ: feat/fix/refactorプレフィックス、ファイル名: YYYYMMDD_パターン）。&lt;br&gt;- **[20251001_LatestToGdrive.py](src/20251001_LatestToGdrive.py)**&lt;br&gt;力作スクリプトのコミット例（unified_importer.py/spiral_plot.pyと連携）。&lt;br&gt;- **[system-specs.md](docs/system-specs.md)**&lt;br&gt;依存関係リスト（参照）。|
-|SUP.8: Change Request（変更追跡）           |[ ] Low: Issuesテンプレートで②リクエスト。（基準: Issue作成&クローズ、②変更履歴トレース）                                                                                                                                                                                                                                                                               |- **[change-request.md](docs/change-request.md)**&lt;br&gt;変更リクエストテンプレート。                                                                                                                                                                                                                                                     |
-|SUP.9: Problem Resolution（バグ解決）       |[ ] Medium: 自動Issue作成（テスト失敗）。（基準: テスト失敗でIssue生成、解決後クローズ）&lt;br&gt;[x] （過去エラー解決）                                                                                                                                                                                                                                                               |- **[problem-resolution.md](docs/problem-resolution.md)**&lt;br&gt;バグ解決履歴。                                                                                                                                                                                                                                                    |
-|SUP.10: Process Improvement（改善ループ）    |[ ] Low: Insightsで②処理時間レビュー。（基準: ダッシュボードで平均時間表示、改善提案1つ）                                                                                                                                                                                                                                                                                 |- **[process-improvement.md](docs/process-improvement.md)**&lt;br&gt;メトリクスレビューと提案。                                                                                                                                                                                                                                            |
-|MAN.1: Project Management（リスク管理）      |[ ] Medium: RISKS.md作成（②: Sheets制限→代替）。（基準: リスト5件以上、対応策記述）                                                                                                                                                                                                                                                                              |- **[project-management.md](docs/project-management.md)**&lt;br&gt;リスクリストとスケジュール。                                                                                                                                                                                                                                             |
+**バージョン:** v1.2.3
+
+---
+
+### 改訂履歴
+| 日付 | 変更者 | 変更内容 | 関連 |
+|---|---|---|---|
+| 2025-10-23 | Hideo (Gemini assist) | 用語集/テーブル/Mermaid改善、SUP/MAN全展開による網羅性向上。 | PR #12, #13<br>(v1.2.3参照) |
+| 2025-10-22 | Hideo (Gemini assist) | 初期バージョン作成。 | - |
+
+---
+
+**最終更新:** 2025-10-23
+
+### 用語集
+- **[REQ-02]**: 主要横断要件「リアルタイム更新（<1min）」。Google Sheetsへのデータ同期とグラフ表示を含む。
+- **7月データ**: 過去のセンサーデータ（192件）。テストや要件定義のベースラインとして使用。
+- **SYS**: System Definition (システム定義)
+- **SWE**: Software Development (ソフトウェア開発)
+- **V&V**: Verification & Validation (検証と妥当性確認)
+- **SUP**: Support Process (サポートプロセス)
+- **MAN**: Management Process (マネジメントプロセス)
+- **Drive/Sheets**: Google Drive / Google Sheets。
+
+### V字プロセス全体像
+
+```mermaid
+graph TD
+    subgraph 設計フェーズ (左側)
+        A(SYS.1 要件定義) --> B(SYS.2 システム設計);
+        B --> C(SYS.3 詳細設計);
+        C --> D(SWE.1 SW要件分析);
+        D --> E(SWE.2 SW設計);
+    end
+    subgraph 実装・テストフェーズ (右側)
+        F(SWE.3 実装) --> G(ユニットテスト);
+        G --> H(統合テスト);
+        H --> I(システムテスト);
+        I --> J(受け入れテスト);
+    end
+    E --> F;
+    A --- J;
+    B --- I;
+    C --- H;
+    E --- G;
+end
+```<br>**※SUP/MANプロセスは横断的な性質を持つため、図中では明示的なV字の線としては示していません。**
+```<br>※SUP/MANプロセスは横断的な性質を持つため、図中では明示的なV字の線としては示していません。
+```
+
+### システム設計 (System Definition - SYS)
+| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
+|---|---|---|---|---|---|
+| SYS.1 | High | [x] | [REQ-02] 要件の具体化 | 要件リストにID追加、Gemini評価OK | [requirements.md](docs/requirements.md) |
+| SYS.2 | Medium | [ ] | データフロー図更新 (Drive→Sheets sync) | テキスト図で[REQ-02]レイヤー記述 | [system-design.md](docs/system-design.md) |
+| SYS.3 | Medium | [p] | [REQ-02] グラフ仕様追加 (折れ線, 異常値ハイライト) | I/F定義書にフォーマット記述 | [detailed-design.md](docs/detailed-design.md) |
+
+### ソフトウェア開発 (Software Development - SWE)
+| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
+|---|---|---|---|---|---|
+| SWE.1 | Low | [ ] | [REQ-02] トレーサビリティ表拡張 | SYS.1とリンク、派生要件5件以上 | [sw-requirements.md](docs/sw-requirements.md) |
+| SWE.2 | Medium | [p] | [REQ-02] 関数図追加 (main → plot_data) | テキストUMLでフロー描画 | [sw-design.md](docs/sw-design.md) |
+| SWE.3 | High | [p] | [REQ-02] Sheets Apps Script作成 | スクリプト実行でSheetsに同期 | [implementation.md](docs/implementation.md) |
+
+### テスト & 検証 (Verification & Validation)
+| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
+|---|---|---|---|---|---|
+| V&V.1 | Medium | [ ] | [REQ-02] 異常値抽出テスト (pytest) | カバレッジ80%超え | [unit-tests.md](docs/unit-tests.md) |
+| V&V.2 | Medium | [ ] | [REQ-02] E2Eテスト (Docker, iPhone表示) | テスト実行でグラフ表示成功 | [integration-tests.md](docs/integration-tests.md) |
+| V&V.3 | Low | [p] | [REQ-02] スケジュールテスト (処理時間<10s) | ログで平均8s以内 | [system-tests.md](docs/system-tests.md) |
+| V&V.4 | Low | [p] | [REQ-02] グラフ比較 (7月データ) | Sheetsで192件推移表示OK | [acceptance-tests.md](docs/acceptance-tests.md) |
+
+### サポートプロセス (Support Process - SUP)
+| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
+|---|---|---|---|---|---|
+| SUP.1 | High | [ ] | Actions ci.ymlでpytest追加 ([REQ-02]含む) | GitHub ActionsでSuccessバッジ | [qa-plan.md](docs/qa-plan.md) |
+| SUP.2 | Low | [ ] | PRでCodeQLスキャン | PRマージでセキュリティクリア | [verification.md](docs/verification.md) |
+| SUP.3 | Medium | [ ] | [REQ-02] Sheets共有リンクテスト | iPhoneアプリでリアルタイムグラフ表示 | [validation.md](docs/validation.md) |
+| SUP.4 | Low | [ ] | [REQ-02] 改善案をGemini評価 | フィードバック3つ以上反映 | [joint-review.md](docs/joint-review.md) |
+| SUP.5 | Medium | [ ] | Slackアラート追加 ([REQ-02]グラフ失敗) | テストエラーでSlack通知到着 | [audit.md](docs/audit.md) |
+| SUP.6 | High | [ ] | deploy.yml作成 (SSH + systemd, [REQ-02]同期) | mainプッシュでラズパイ再起動 | [product-acceptance.md](docs/product-acceptance.md) |
+| SUP.7 | Low | [p] | Dependabot PR設定 | 自動PR生成、ライブラリ更新1件適用 | [configuration.md](docs/configuration.md) |
+| SUP.8 | Low | [ ] | Issuesテンプレートで[REQ-02]リクエスト | Issue作成&クローズ、変更履歴トレース | [change-request.md](docs/change-request.md) |
+| SUP.9 | Medium | [p] | 自動Issue作成 (テスト失敗) | テスト失敗でIssue生成、解決後クローズ | [problem-resolution.md](docs/problem-resolution.md) |
+| SUP.10 | Low | [ ] | Insightsで[REQ-02]処理時間レビュー | ダッシュボードで平均時間表示 | [process-improvement.md](docs/process-improvement.md) |
+
+### マネジメントプロセス (Management Process - MAN)
+| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
+|---|---|---|---|---|---|
+| MAN.1 | Medium | [ ] | RISKS.md作成 ([REQ-02]: Sheets制限→代替) | リスト5件以上、対応策記述 | [project-management.md](docs/project-management.md) |
+
+---
+*凡例: ステータス [x]=完了, [p]=一部完了, [ ]=未着手*
