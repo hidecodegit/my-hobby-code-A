@@ -49,7 +49,7 @@ Mac側の分析環境では、`pandas`, `numpy`, `matplotlib`, `mysql-connector-
 - **RPi 運用**:
   - **スケジューラ**: `cron` を使用し、15分間隔でスクリプトを実行。
     - `*/15 * * * * /usr/bin/python3 /home/hideo_81_g/workspace/20251022_SensorCopier.py >> /dev/null 2>&1`
-    - この`cron`設定は、[REQ-02]で定義されたリアルタイム更新（<1min）の基盤となります。
+    - この`cron`設定は、[REQ-02]で定義されたリアルタイム更新（処理時間<1min目標）の基盤となります。
   - **デプロイ**: RealVNC経由での手動ファイル転送、または `scp` コマンド。
 - **データ同期**: `rclone` v1.69.0
   - **リモート**: `raspi_data` (Google Drive)
