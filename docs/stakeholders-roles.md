@@ -1,12 +1,11 @@
 # Stakeholders and Roles
 
-**バージョン:** v1.2.4
-
 ---
 
 ### 改訂履歴
 | 日付 | 変更者 | 変更内容 | 関連 |
 |---|---|---|---|
+| 2025-10-26 | Hideo (assisted by Gemini) | バージョン管理一元化のため、バージョン番号を削除。 | - |
 | 2025-10-24 | Hideo (assisted by Gemini) | レビューに基づく微調整（一貫性/視覚強化）。 | PR #18<br>(v1.2.4参照) |
 | 2025-10-19 | Hideo (assisted by Grok/Gemini) | 初版作成、Grok/Geminiに「ちょっと間抜け」追加。 | - |
 

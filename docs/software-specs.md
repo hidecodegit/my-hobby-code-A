@@ -2,13 +2,14 @@
 
 本ドキュメントは、PiPulseパイプラインを構成するソフトウェアと依存関係の仕様書です。
 
-**最終更新:** 2025-10-24
+**最終更新:** 2025-10-26
 
 ---
 
 ### 改訂履歴
 | 日付 | 変更者 | 変更内容 | 関連 |
 |---|---|---|---|
+| 2025-10-26 | Hideo (assisted by Gemini) | cronログ監視とトラブルシュートの事例を追記。 | - |
 | 2025-10-24 | Hideo (assisted by Gemini) | レビューに基づく微調整（一貫性/視覚強化）。 | PR #18<br>(v1.2.4参照) |
 | 2025-10-22 | Hideo (assisted by Gemini) | 初版作成。 | PR #11 |
 
@@ -48,8 +49,13 @@ Mac側の分析環境では、`pandas`, `numpy`, `matplotlib`, `mysql-connector-
 - **開発環境 (Mac)**: VSCode + Python拡張機能
 - **RPi 運用**:
   - **スケジューラ**: `cron` を使用し、15分間隔でスクリプトを実行。
-    - `*/15 * * * * /usr/bin/python3 /home/hideo_81_g/workspace/20251022_SensorCopier.py >> /dev/null 2>&1`
+    - `*/15 * * * * /usr/bin/python3 /home/hideo_81_g/workspace/20251022_SensorCopier.py >> /home/hideo_81_g/logs/cron_sensor.log 2>&1`
     - この`cron`設定は、[REQ-02]で定義されたリアルタイム更新（処理時間<1min目標）の基盤となります。
+
+  - **監視 & トラブルシュート (2025-10-26 更新)**:
+    - **cronログリダイレクト**: `crontab -e` でリダイレクト先を `>> /home/hideo_81_g/logs/cron_sensor.log 2>&1` に変更。エラー検知を強化し、SDカードへの影響は微小。
+    - **同期タイムスタンプ確認**: `rclone lsl/cat | tail -n 5` や、ログ内の `grep "全体のコピー同期"` により、Google Drive APIの遅延などを監視。
+    - **事例**: `last_full_sync.json` が古い症状に対し、18:00のcronトリガーが成功していることをログから確認。これは[REQ-02]の`<1min`目標達成を判断する基準となる。
   - **デプロイ**: RealVNC経由での手動ファイル転送、または `scp` コマンド。
 - **データ同期**: `rclone` v1.69.0
   - **リモート**: `raspi_data` (Google Drive)
