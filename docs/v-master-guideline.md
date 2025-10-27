@@ -27,28 +27,28 @@
 ### V字プロセス全体像
 
 ```mermaid
-graph TD
+graph LR
     classDef design fill:#e1f5fe,stroke:#22577a,stroke-width:2px;
     classDef test fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
     subgraph phase_left ["設計フェーズ (左側)"]
-        A[SYS.1 要件定義] --> B[SYS.2 システム設計];
-        B --> C[SYS.3 詳細設計];
-        C --> D[SWE.1 SW要件分析];
-        D --> E[SWE.2 SW設計];
+        A[SYS.1 要件定義] --> B[SYS.2 システム設計]
+        B --> C[SYS.3 詳細設計]
+        C --> D[SWE.1 SW要件分析]
+        D --> E[SWE.2 SW設計]
     end
     subgraph phase_right ["実装・テストフェーズ (右側)"]
-        F[SWE.3 実装] --> G[ユニットテスト];
-        G --> H[統合テスト];
-        H --> I[システムテスト];
-        I --> J[受け入れテスト];
+        F[SWE.3 実装] --> G[ユニットテスト]
+        G --> H[統合テスト]
+        H --> I[システムテスト]
+        I --> J[受け入れテスト]
     end
-    class A,B,C,D,E design;
-    class F,G,H,I,J test;
-    E --> F;
-    A --- J;
-    B --- I;
-    C --- H;
-    E --- G;
+    class A,B,C,D,E design
+    class F,G,H,I,J test
+    E --> F
+    A --- J
+    B --- I
+    C --- H
+    E --- G
 ```
 
 ### システム設計 (System Definition - SYS)
