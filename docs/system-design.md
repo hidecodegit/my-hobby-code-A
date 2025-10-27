@@ -32,7 +32,7 @@ PiPulseパイプラインのタイムゾーン方針をUTCからJSTに統一す�
     - **データフロー図の更新**: 以下のように、データフロー図に「[移行ステップ: UTCクリーンアップ]」のような、データ形式変換やクリーンアップのステップを明示的に追加し、設計段階で互換性問題を可視化します。
       ```mermaid
       graph LR
-          Sensor[センサーデータ取得] --> JSON[JSON保存 (ISOタイムスタンプ)]
+          Sensor[センサーデータ取得] --> JSON["JSON保存 (ISOタイムスタンプ)"]
           JSON --> Cleanup[移行ステップ: UTCクリーンアップ]
           Cleanup --> Sync["データ同期 (JST統一, <1min目標)"]
           Sync --> Drive[Google Driveアップロード]
