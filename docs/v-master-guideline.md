@@ -1,95 +1,127 @@
-## PiPulse Pipeline: V-Model Master Guideline
-
-**最終更新:** 2025-10-31
+# PiPulse Pipeline: V-Model Master Guideline
+**最終更新**: 2025-12-06（Hideo, Grok & Gemini 共同リファイン）
 
 ### 改訂履歴
-| 日付 | 変更者 | 変更内容 | 関連 |
-|---|---|---|---|
-| 2025-10-31 | Hideo (assisted by Gemini/Grok) | Grokレビューの指摘を反映し、トレーサビリティの教訓をMAN.1等に追記。 | - |
-| 2025-10-27 | Hideo (assisted by Gemini/Grok) | Mermaid修正、SYS.2整合性向上などGrokレビューを反映。 | - |
-| 2025-10-26 | Hideo (assisted by Gemini) | バージョン管理一元化のため、バージョン番号を削除。 | - |
-| 2025-10-23 | Hideo (Gemini assist) | 用語集/テーブル/Mermaid改善、SUP/MAN全展開による網羅性向上。 | PR #12, #13<br>(v1.2.3参照) |
-| 2025-10-22 | Hideo (Gemini assist) | 初期バージョン作成。 | - |
+| 日付         | 変更者           | 変更内容                                           |
+|--------------|------------------|----------------------------------------------------|
+| 2025-12-06   | Hideo, Grok, Gemini | 国際標準名称に完全統一、章立て・SUPサブセクション化、ドキュメントマップ追加 |
+| 2025-10-31   | Hideo & Grok     | トレーサビリティ教訓追記                           |
+| 2025-10-27   | Hideo & Grok     | Mermaid修正、SYS.2整合性向上                       |
+| 2025-10-26   | Hideo (Gemini)   | バージョン番号削除                                 |
+| 2025-10-22   | Hideo (Gemini)   | 初版作成                                           |
 
----
-
-### 用語集
-- **7月データ**: 過去のセンサーデータ（192件）。テストや要件定義のベースラインとして使用。タイムスタンプ形式は `%Y-%m-%d %H:%M`（秒なし）。`REQ-01.1`のベースライン形式。
-- **Drive**: Google Drive。
-- **MAN**: Management Process (マネジメントプロセス)
-- **[REQ-02]**: 主要横断要件「リアルタイム更新（処理時間<1min目標）」。センサーデータ取得からGoogle Driveへのアップロードまでの一連の処理を指す。
-- **SUP**: Support Process (サポートプロセス)
-- **SWE**: Software Development (ソフトウェア開発)
-- **SYS**: System Definition (システム定義)
-- **V&V**: Verification & Validation (検証と妥当性確認)
+### 用語集（プロジェクト全体共通）
+- **7月データ**：192件の過去センサーデータ（秒なし `%Y-%m-%d %H:%M`）。後方互換性テストのベースライン。
+- **Drive**：Google Drive（rclone同期先）
+- **FR / NFR**：Functional / Non-Functional Requirements
+- **INC-xxx**：教訓番号（lessons-learned.md参照）
 
 ### V字プロセス全体像
-
 ```mermaid
 graph LR
     classDef design fill:#e1f5fe,stroke:#22577a,stroke-width:2px;
     classDef test fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
-    subgraph phase_left ["設計フェーズ (左側)"]
-        A[SYS.1 要件定義] --> B[SYS.2 システム設計]
-        B --> C[SYS.3 詳細設計]
-        C --> D[SWE.1 SW要件分析]
-        D --> E[SWE.2 SW設計]
+    subgraph left ["設計フェーズ"]
+        A[SYS.1 システム要件分析] --&gt; B[SYS.2 システムアーキテクチャ設計]
+        B --&gt; C[SYS.3 システム詳細設計]
+        C --&gt; D[SWE.1 ソフトウェア要件分析]
+        D --&gt; E[SWE.2 ソフトウェアアーキテクチャ設計]
     end
-    subgraph phase_right ["実装・テストフェーズ (右側)"]
-        F[SWE.3 実装] --> G[ユニットテスト]
-        G --> H[統合テスト]
-        H --> I[システムテスト]
-        I --> J[受け入れテスト]
+    subgraph right ["検証フェーズ"]
+        F[SWE.3 ソフトウェア実装] --&gt; G[単体テスト]
+        G --&gt; H[統合テスト]
+        H --&gt; I[システムテスト]
+        I --&gt; J[受入テスト]
     end
     class A,B,C,D,E design
     class F,G,H,I,J test
-    E --> F
+    E --&gt; F
     A --- J
     B --- I
     C --- H
     E --- G
 ```
 
-### システム設計 (System Definition - SYS)
-| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
-|---|---|---|---|---|---|
-| SYS.1 | High | [x] | [REQ-01], [REQ-02] 要件の具体化 | 要件リストにID追加、Gemini評価OK | [requirements.md](requirements.md) (`REQ-01`は7月データで検証済) |
-| SYS.2 | Medium | [ ] | データフロー図更新 (タイムゾーン互換性含む移行ステップ記述) | テキスト図で[REQ-02]レイヤー記述 | [system-design.md](system-design.md) (タイムゾーン移行事例参照) |
-| SYS.3 | Medium | [p] | [REQ-02] グラフ仕様追加 (折れ線, 異常値ハイライト) | I/F定義書にフォーマット記述 | [detailed-design.md](detailed-design.md) |
+## 1. システム定義プロセス（System Definition - SYS）
 
-### ソフトウェア開発 (Software Development - SWE)
-| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
-|---|---|---|---|---|---|
-| SWE.1 | Low | [ ] | [REQ-02] トレーサビリティ表拡張 | SYS.1とリンク、派生要件5件以上 | sw-requirements.md |
-| SWE.2 | Medium | [p] | [REQ-02] 関数図追加 (main → plot_data) | テキストUMLでフロー描画 | sw-design.md |
-| SWE.3 | High | [p] | [REQ-02] Apps Script作成 (同期処理) | スクリプト実行でデータ同期 | implementation.md |
+|プロセスID|正式名称         |優先度   |ステータス|成果物ファイル名              |主要な活動・目標        |
+|------|-------------|------|-----|----------------------|--------------------|
+|SYS.1 |システム要件分析     |High  |[x]  |system_requirements.md|2025-12-06確定        |
+|SYS.2 |システムアーキテクチャ設計|Medium|[p]  |system_architecture.md|旧system-design.md統合中|
+|SYS.3 |システム詳細設計     |Medium|[p]  |detailed-design.md    |将来MySQLスキーマ等        |
 
-### テスト & 検証 (Verification & Validation)
-| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
-|---|---|---|---|---|---|
-| V&V.1 | Medium | [ ] | [REQ-02] 異常値抽出テスト (pytest)。データ形式混在テスト追加 (`INC-005`参照)。 | カバレッジ80%超え | unit-tests.md |
-| V&V.2 | Medium | [ ] | [REQ-02] E2Eテスト (Docker, iPhone表示) | テスト実行でグラフ表示成功 | [integration-tests.md](integration-tests.md) |
-| V&V.3 | Low | [p] | [REQ-02] スケジュールテスト (処理時間<10s) | ログで平均8s以内 | [system-tests.md](system-tests.md) |
-| V&V.4 | Low | [p] | [REQ-02] グラフ比較 (7月データ) | グラフツールで192件推移表示OK | acceptance-tests.md |
+## 2. ソフトウェア開発プロセス（Software Development - SWE）
 
-### サポートプロセス (Support Process - SUP)
-| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
-|---|---|---|---|---|---|
-| SUP.1 | High | [ ] | Actions ci.ymlでpytest追加 ([REQ-02]含む) | GitHub ActionsでSuccessバッジ | [qa-plan.md](qa-plan.md) |
-| SUP.2 | Low | [ ] | PRでCodeQLスキャン | PRマージでセキュリティクリア | [verification.md](verification.md) |
-| SUP.3 | Medium | [ ] | [REQ-02] 共有リンクテスト (iPhone表示) | iPhoneアプリでリアルタイムグラフ表示 | validation.md |
-| SUP.4 | Low | [ ] | [REQ-02] 改善案をGemini評価 | フィードバック3つ以上反映 | [joint-review.md](joint-review.md) |
-| SUP.5 | Medium | [ ] | Slackアラート追加 ([REQ-02]グラフ失敗) | テストエラーでSlack通知到着 | [audit.md](audit.md) |
-| SUP.6 | High | [ ] | deploy.yml作成 (SSH + systemd, [REQ-02]同期) | mainプッシュでラズパイ再起動 | [product-acceptance.md](product-acceptance.md) |
-| SUP.7 | Low | [p] | Dependabot PR設定 | 自動PR生成、ライブラリ更新1件適用 | [configuration.md](configuration.md) |
-| SUP.8 | Low | [ ] | Issuesテンプレートで[REQ-02]リクエスト | Issue作成&クローズ、変更履歴トレース | [change-request.md](change-request.md) |
-| SUP.9 | Medium | [p] | 自動Issue作成 (テスト失敗) | テスト失敗でIssue生成、解決後クローズ | [problem-resolution.md](problem-resolution.md) |
-| SUP.10 | Low | [ ] | Insightsで[REQ-02]処理時間レビュー | ダッシュボードで平均時間表示 | [process-improvement.md](process-improvement.md) |
+|プロセスID|正式名称           |優先度   |ステータス|成果物ファイル名          |主要な活動・目標               |
+|------|---------------|------|-----|------------------|-----------------------------|
+|SWE.1 |ソフトウェア要件分析     |Low   |[ ]  |sw-requirements.md|REQ派生5件以上                    |
+|SWE.2 |ソフトウェアアーキテクチャ設計|Medium|[p]  |sw-architecture.md|関数図・シーケンス図                   |
+|SWE.3 |ソフトウェア実装       |High  |[p]  |implementation.md |Python + rclone + Apps Script|
 
-### マネジメントプロセス (Management Process - MAN)
-| プロセスID | 優先度 | ステータス | TODO | 完了基準 | Notes (成果物) |
-|---|---|---|---|---|---|
-| MAN.1 | Medium | [ ] | `RISKS.md`作成 + トレーサビリティチェックのルール化 | リスクリスト5件以上。教訓: 用語集（7月データ形式）と要件（REQ-01.1）の不整合を見落とした。月1回のAIレビューで上位・下位文書の一貫性を確保する。 | project-management.md |
+## 3. 検証＆妥当性確認プロセス（Verification & Validation）
 
----
-*凡例: ステータス [x]=完了, [p]=一部完了, [ ]=未着手*
+|プロセスID|名称     |優先度   |ステータス|成果物ファイル名            |主要な活動・目標            |
+|------|-------|------|-----|--------------------|--------------------|
+|V&V.1 |単体テスト  |Medium|[ ]  |unit-tests.md       |pytest カバレッジ80%以上   |
+|V&V.2 |統合テスト  |Medium|[ ]  |integration-tests.md|E2E（Docker + iPhone）|
+|V&V.3 |システムテスト|Medium|[p]  |system-tests.md     |スケジュール時間・欠測チェック     |
+|V&V.4 |受入テスト  |Low   |[p]  |acceptance-tests.md |7月データグラフ比較          |
+
+## 4. サポートプロセス（Support Process - SUP）
+
+### 4.1 CI/CD・品質保証
+
+|プロセスID|名称              |優先度 |ステータス|成果物ファイル名        |主要な活動・目標|
+|------|----------------|----|-----|----------------|----|
+|SUP.1 |QA・CI計画         |High|[ ]  |qa-plan.md      |CIワークフロー定義|
+|SUP.2 |検証（CodeQL等）     |Low |[ ]  |verification.md |静的解析|
+|SUP.7 |構成管理（Dependabot）|Low |[p]  |configuration.md|依存関係の自動更新|
+
+### 4.2 デプロイ・監視
+
+|プロセスID|名称       |優先度   |ステータス|成果物ファイル名             |主要な活動・目標|
+|------|---------|------|-----|---------------------|----|
+|SUP.5 |Slackアラート|Medium|[ ]  |audit.md             |エラー/失敗通知|
+|SUP.6 |製品受入・デプロイ|High  |[ ]  |product-acceptance.md|RPiへの自動デプロイ|
+
+### 4.3 レビュー・改善
+
+|プロセスID|名称       |優先度   |ステータス|成果物ファイル名              |主要な活動・目標|
+|------|---------|------|-----|----------------------|----|
+|SUP.9 |問題解決・教訓管理|Medium|[p]  |lessons-learned.md    |インシデント管理|
+|SUP.10|プロセス改善   |Low   |[ ]  |process-improvement.md|定期的なプロセス見直し|
+
+## 5. マネジメントプロセス（Management Process - MAN）
+
+### 5.1 プロジェクト管理プロセス
+
+|プロセスID|名称      |優先度   |ステータス|成果物ファイル名                     |主要な活動・目標|
+|------|--------|------|-----|-----------------------------|----|
+|MAN.1 |プロジェクト管理|Medium|[p]  |project-management.md + 本ファイル|リスク管理、進捗追跡|
+
+### 5.2 ドキュメントマップ（全成果物一覧）
+
+|分類      |ファイル名                 |Vモデル階層             |ステータス|最終更新      |概要               |
+|--------|----------------------|-------------------|-----|----------|-----------------|
+|**管理**  |v-master-guideline.md |MAN.1              |[x]  |2025-12-06|本ファイル（マスターガイド）|
+|          |project-management.md |MAN.1              |[p]  |          |リスク・進捗管理ドキュメント|
+|          |traceability_matrix.md|MAN.1              |[p]  |2025-12-06|要件トレーサビリティマトリクス|
+|**システム**|system_requirements.md|SYS.1              |[x]  |2025-12-06|システム要件定義書|
+|          |system_architecture.md|SYS.2              |[p]  |2025-12-06|システムアーキテクチャ設計書|
+|          |detailed-design.md    |SYS.3              |[p]  |          |システム詳細設計書|
+|**SW**    |sw-requirements.md    |SWE.1              |[ ]  |          |ソフトウェア要件分析書|
+|          |sw-architecture.md    |SWE.2              |[p]  |          |ソフトウェアアーキテクチャ設計書|
+|          |implementation.md     |SWE.3              |[p]  |          |実装メモ・手順書|
+|**テスト**  |unit-tests.md         |V&V.1              |[ ]  |          |単体テスト計画・結果|
+|          |integration-tests.md  |V&V.2              |[ ]  |          |統合テスト計画・結果|
+|          |system-tests.md       |V&V.3              |[p]  |          |システムテスト計画・結果|
+|          |acceptance-tests.md   |V&V.4              |[p]  |          |受入テスト計画・結果|
+|**サポート**|qa-plan.md            |SUP.1              |[ ]  |          |品質保証・CI計画書|
+|          |verification.md       |SUP.2              |[ ]  |          |静的解析・検証結果|
+|          |configuration.md      |SUP.7              |[p]  |          |構成管理計画書（Dependabot等）|
+|          |audit.md              |SUP.5              |[ ]  |          |監査・監視ログ仕様|
+|          |product-acceptance.md |SUP.6              |[ ]  |          |製品受入・デプロイ計画書|
+|          |lessons-learned.md    |SUP.9              |[p]  |2025-10-31|問題解決・教訓集|
+|          |process-improvement.md|SUP.10             |[ ]  |          |プロセス改善計画書|
+
+*凡例: [x]=完了, [p]=進行中, [ ]=未着手*
