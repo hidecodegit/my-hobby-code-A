@@ -1,11 +1,12 @@
 # SYS.2 システムアーキテクチャ設計書
 **プロジェクト**：PiPulse Pipeline  
-**最終更新**：2025-12-06（Hideo, Grok & Gemini 共同確定）  
+**最終更新**：2025-12-07（Hideo & Gemini 共同確定）  
 **トレース元**：docs/system_requirements.md（全REQ対応）
 
 ### 改訂履歴
 | 日付         | 変更者               | 変更内容                                           |
 |--------------|----------------------|----------------------------------------------------|
+| 2025-12-07   | Hideo & Gemini       | Mermaid図をリスト形式に変更し、可読性を向上。セクション番号の重複を修正。 |
 | 2025-12-06   | Hideo, Grok, Gemini  | 用語集を追加し、ドキュメント全体の書式を最終FIX。    |
 | 2025-12-06   | Hideo, Grok, Gemini  | 全ドキュメントと整合性を取るFIX。ハードウェア名を`RPi 4`に統一。 |
 | 2025-12-06   | Hideo, Grok, Gemini  | 旧system-design.mdをSYS.2正式成果物に昇格。        |
@@ -15,33 +16,31 @@
 - **論理アーキテクチャ図**: システムを構成する主要な論理コンポーネント（機能部品）と、それらの間のデータフローや連携を示す図。
 
 ### 2. システムコンテキスト図
-```mermaid
-graph LR
-    A[Raspberry Pi 4<br>SensorCopier.py] -->|I2C| B[AHT25 センサー]
-    A -->|rclone copy| C[Google Drive]
-    C --> D[MySQL<br>sensor_data_db]
-    D --> E[Mac 可視化スクリプト]
-    A -->|REQ-02.2 将来拡張| F[Slack通知]
-```
+システム全体と、それを取り巻く外部要素との関係性を示します。
 
-### 2. 論理アーキテクチャ図（旧system-design.mdより完全継承）
+- **`AHT25 センサー`**: `Raspberry Pi 4` がI2C経由でデータを読み取る物理デバイス。
+- **`Raspberry Pi 4`**: センサーデータを収集・処理し、`Google Drive`へアップロードする中核コンポーネント。
+- **`Google Drive`**: `Raspberry Pi 4` からのデータを受け取るクラウドストレージ。
+- **`MySQL`**: `Google Drive` のデータを格納し、分析の基盤となるデータベース。
+- **`Mac 可視化スクリプト`**: `MySQL` のデータを読み取り、グラフとして可視化する。
+- **`Slack`**: (将来拡張) `Raspberry Pi 4` からの通知を受け取る。
 
-```mermaid
-graph TD
-    subgraph "Raspberry Pi 4"
-        cron[cron 15分間隔] --> P[SensorCopier.py]
-        P --> R[AHT25センサー読み取り]
-        R --> T[柔軟タイムスタンプパース<br>（INC-005対応）]
-        T --> W[最新JSON + 月次JSON書き込み<br>（JST統一・INC-002対応）]
-        W --> U[rclone copy同期<br>（INC-001対応）]
-        U -->|失敗時| Slack[Slackアラート<br>(REQ-02.2 将来拡張)]
-    end
-    W --> Drive[Google Drive]
-```
+### 3. 論理アーキテクチャ
+`Raspberry Pi 4` 上で実行される `SensorCopier.py` の内部処理フローを示します。
 
-### 3. 要件トレーサビリティ（SYS.1 → SYS.2）
+- **`cron` (スケジューラ)**
+    - → `SensorCopier.py` を15分間隔で起動する。
+- **`SensorCopier.py` (メインスクリプト)**
+    - → `AHT25センサー読み取り`: I2C経由でセンサーデータを取得する。
+    - → `柔軟タイムスタンプパース`: 秒の有無が混在するタイムスタンプを処理する (INC-005対応)。
+    - → `ファイル書き込み`: 処理後のデータを最新ファイルと月次ファイルに書き込む (JST統一, INC-002対応)。
+        - → `Google Drive` へデータを出力する。
+    - → `rclone copy同期`: 書き込んだファイルを `Google Drive` へアップロードする (INC-001対応)。
+        - → (失敗時) `Slackアラート` を送信する (REQ-02.2 将来拡張)。
 
-|対応要件    |実装コンポーネント（図参照）                     |教訓適用   |
+### 4. 要件トレーサビリティ（SYS.1 → SYS.2）
+
+|対応要件    |実装コンポーネント                           |教訓適用   |
 |--------|-----------------------------------|-------|
 |REQ-01  |AHT25センサー読み取り + cron               |-      |
 |REQ-01.1|柔軟タイムスタンプパース                       |INC-005|
@@ -53,7 +52,7 @@ graph TD
 |REQ-04  |GitHub Actions CI/CD               |-      |
 |REQ-04.2|旧月データアーカイブ（将来拡張）                   |-      |
 
-### 4. 教訓適用状況（詳細は docs/lessons-learned.md 参照）
+### 5. 教訓適用状況（詳細は docs/lessons-learned.md 参照）
 
 |INC番号  |内容           |本設計での対策              |
 |-------|-------------|---------------------|
