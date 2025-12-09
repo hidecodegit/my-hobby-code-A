@@ -1,10 +1,13 @@
 # PiPulse Pipeline: V-Model Master Guideline
-**最終更新**: 2025-12-06（Hideo, Grok & Gemini 共同リファイン）
+**最終更新**: 2025-12-09（Hideo & Gemini 共同リファイン）
 
 ### 改訂履歴
 | 日付         | 変更者           | 変更内容                                           |
 |--------------|------------------|----------------------------------------------------|
-| 2025-12-06   | Hideo, Grok, Gemini | 国際標準名称に完全統一、章立て・SUPサブセクション化、ドキュメントマップ追加 |
+| 2025-12-09   | Hideo & Gemini   | SWE.3を完了とし、ステータスを[x]に更新。ドキュメントマップの最終更新日を反映。 |
+| 2025-12-09   | Hideo & Gemini   | SYS.3をテーラリング宣言により完了とし、ステータスを[x]に更新。 |
+| 2025-12-08   | Hideo & Gemini   | SYS.2, SWE.2のステータスを[p]から[x]に更新。実態に合わせて完了扱いとする。 |
+| 2025-12-06   | Hideo, Grok, Gemini | 国際標準名称に完全統一、章立て・SUPサブセクション化、ドキュメントマップ追加。 |
 | 2025-10-31   | Hideo & Grok     | トレーサビリティ教訓追記                           |
 | 2025-10-27   | Hideo & Grok     | Mermaid修正、SYS.2整合性向上                       |
 | 2025-10-26   | Hideo (Gemini)   | バージョン番号削除                                 |
@@ -47,16 +50,16 @@ graph LR
 |プロセスID|正式名称         |優先度   |ステータス|成果物ファイル名              |主要な活動・目標        |
 |------|-------------|------|-----|----------------------|--------------------|
 |SYS.1 |システム要件分析     |High  |[x]  |system_requirements.md|2025-12-06確定        |
-|SYS.2 |システムアーキテクチャ設計|Medium|[p]  |system_architecture.md|旧system-design.md統合中|
-|SYS.3 |システム詳細設計     |Medium|[p]  |detailed-design.md    |将来MySQLスキーマ等        |
+|SYS.2 |システムアーキテクチャ設計|Medium|[x]  |system_architecture.md|旧system-design.md統合済|
+|SYS.3 |システム詳細設計     |Medium|[x]  |detailed-design.md    |本テーラリング宣言にて完了 |
 
 ## 2. ソフトウェア開発プロセス（Software Development - SWE）
 
 |プロセスID|正式名称           |優先度   |ステータス|成果物ファイル名          |主要な活動・目標               |
 |------|---------------|------|-----|------------------|-----------------------------|
 |SWE.1 |ソフトウェア要件分析     |Low   |[ ]  |sw-requirements.md|REQ派生5件以上                    |
-|SWE.2 |ソフトウェアアーキテクチャ設計|Medium|[p]  |sw-architecture.md|関数図・シーケンス図                   |
-|SWE.3 |ソフトウェア実装       |High  |[p]  |implementation.md |Python + rclone + Apps Script|
+|SWE.2 |ソフトウェアアーキテクチャ設計|Medium|[x]  |sw-architecture.md|関数図・シーケンス図                   |
+|SWE.3 |ソフトウェア実装       |High  |[x]  |implementation.md |v1.3.0にて完了                |
 
 ## 3. 検証＆妥当性確認プロセス（Verification & Validation）
 
@@ -106,12 +109,12 @@ graph LR
 |**管理**  |v-master-guideline.md |MAN.1              |[x]  |2025-12-06|本ファイル（マスターガイド）|
 |          |project-management.md |MAN.1              |[p]  |          |リスク・進捗管理ドキュメント|
 |          |traceability_matrix.md|MAN.1              |[p]  |2025-12-06|要件トレーサビリティマトリクス|
-|**システム**|system_requirements.md|SYS.1              |[x]  |2025-12-06|システム要件定義書|
-|          |system_architecture.md|SYS.2              |[p]  |2025-12-06|システムアーキテクチャ設計書|
-|          |detailed-design.md    |SYS.3              |[p]  |          |システム詳細設計書|
+|**システム**|system_requirements.md|SYS.1              |[x]  |2025-12-09|システム要件定義書|
+|          |system_architecture.md|SYS.2              |[x]  |2025-12-08|システムアーキテクチャ設計書|
+|          |detailed-design.md    |SYS.3              |[x]  |2025-12-09|システム詳細設計書（テーラリング宣言）|
 |**SW**    |sw-requirements.md    |SWE.1              |[ ]  |          |ソフトウェア要件分析書|
-|          |sw-architecture.md    |SWE.2              |[p]  |          |ソフトウェアアーキテクチャ設計書|
-|          |implementation.md     |SWE.3              |[p]  |          |実装メモ・手順書|
+|          |sw-architecture.md    |SWE.2              |[x]  |2025-12-08|ソフトウェアアーキテクチャ設計書|
+|          |implementation.md     |SWE.3              |[x]  |2025-12-09|実装メモ・手順書|
 |**テスト**  |unit-tests.md         |V&V.1              |[ ]  |          |単体テスト計画・結果|
 |          |integration-tests.md  |V&V.2              |[ ]  |          |統合テスト計画・結果|
 |          |system-tests.md       |V&V.3              |[p]  |          |システムテスト計画・結果|
