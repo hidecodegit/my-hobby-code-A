@@ -64,20 +64,28 @@ jobs:
           PY
 
   deploy:
-    needs: test
+    needs: test  # ← テスト成功時だけデプロイ実行！！
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare directories
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: mkdir -p /home/hideo_81_g/workspace /home/hideo_81_g/logs
+
       - name: Deploy script to RasPi workspace
-        uses: appleboy/scp-action@v0.1.7  # 最新版
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: sensor_copier_v3_20251220.py
           target: /home/hideo_81_g/workspace/
-          overwrite: true  # 上書きOK（デフォルト上書きだけど明示）
+          overwrite: true
 
       - name: Update symlink and logs
         uses: appleboy/ssh-action@v1.0.3
@@ -87,7 +95,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/hideo_81_g/workspace
-            mkdir -p /home/hideo_81_g/logs  # ログディレクトリ確実作成
             ln -sf sensor_copier_v3_20251220.py SensorCopier_current.py
             echo "$(date): Deployed v3.20251220 and symlink updated (tests passed)" >> /home/hideo_81_g/logs/deploy.log
             ls -l SensorCopier_current.py >> /home/hideo_81_g/logs/deploy.log
