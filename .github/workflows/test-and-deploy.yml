@@ -37,29 +37,21 @@ jobs:
           sys.path.append('.')
           from sensor_copier_v3_20251220 import needs_full_sync, FULL_SYNC_INTERVAL_HOURS
 
-          def test(hour, minute, expected):
-              class MockNow:
-                  hour = hour
-                  minute = minute
-                  @staticmethod
-                  def now():
-                      return MockNow()
+          def test(h, m, expected):
               orig_now = datetime.now
-              datetime.now = lambda: MockNow()
+              datetime.now = lambda: datetime(2025, 12, 20, h, m)
               result, _ = needs_full_sync()
               datetime.now = orig_now
-              assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} (expected {expected})"
-              print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
+              assert result == expected, f"FAIL: {h:02d}:{m:02d} -> {result} (expected {expected})"
+              print(f"PASS: {h:02d}:{m:02d} -> {result}")
 
           print("Testing needs_full_sync()...")
-          # 同期されるべきケース (4の倍数時間 + 0-14分)
           test(0, 0, True)
           test(4, 10, True)
           test(8, 14, True)
           test(12, 5, True)
           test(16, 0, True)
           test(20, 14, True)
-          # 同期されないケース
           test(20, 15, False)
           test(20, 59, False)
           test(1, 0, False)
@@ -67,7 +59,7 @@ jobs:
           test(21, 0, False)
           print("All needs_full_sync tests PASSED!! 🎉")
           PY
-
+          
   deploy:
     needs: test  # ← テスト成功時だけデプロイ実行！！
     runs-on: ubuntu-latest
