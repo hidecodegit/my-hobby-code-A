@@ -1,0 +1,88 @@
+name: Test and Deploy SensorCopier v3
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '20251217_SensorCopier_v3.py'
+  workflow_dispatch:  # 手動実行可能
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Syntax check
+        run: python -m py_compile 20251217_SensorCopier_v3.py
+
+      - name: Unit tests for needs_full_sync (重要バグ防止)
+        run: |
+          python - << 'PY'
+          from datetime import datetime
+          import sys
+          sys.path.append('.')
+          from 20251217_SensorCopier_v3 import needs_full_sync, FULL_SYNC_INTERVAL_HOURS
+
+          def test(hour, minute, expected):
+              class MockNow:
+                  hour = hour
+                  minute = minute
+                  @staticmethod
+                  def now():
+                      return MockNow()
+              orig_now = datetime.now
+              datetime.now = lambda: MockNow()
+              result, _ = needs_full_sync()
+              datetime.now = orig_now
+              assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} (expected {expected})"
+              print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
+
+          print("Testing needs_full_sync()...")
+          # 同期されるべきケース (4の倍数時間 + 0-14分)
+          test(0, 0, True)
+          test(4, 10, True)
+          test(8, 14, True)
+          test(12, 5, True)
+          test(16, 0, True)
+          test(20, 14, True)
+          # 同期されないケース
+          test(20, 15, False)
+          test(20, 59, False)
+          test(1, 0, False)
+          test(3, 59, False)
+          test(21, 0, False)
+          print("All needs_full_sync tests PASSED!! 🎉")
+          PY
+
+  deploy:
+    needs: test  # ← テスト成功時だけデプロイ実行！！
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy v3.py to RasPi workspace
+        uses: burnett01/rsync-deployments@5.2.1
+        with:
+          switches: -avz --checksum
+          path: 20251217_SensorCopier_v3.py
+          remote_path: /home/hideo_81_g/workspace/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Update current symlink to v3
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            ln -sf /home/hideo_81_g/workspace/20251217_SensorCopier_v3.py /home/hideo_81_g/workspace/SensorCopier_current.py
+            echo "$(date): Deployed v3 and updated symlink (after tests passed)" >> /home/hideo_81_g/logs/deploy.log
+            ls -l /home/hideo_81_g/workspace/SensorCopier_current.py >> /home/hideo_81_g/logs/deploy.log
