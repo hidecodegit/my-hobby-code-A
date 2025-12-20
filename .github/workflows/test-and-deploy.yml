@@ -18,9 +18,9 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install system dependencies for smbus
+      - name: Install python3-smbus for test environment
         run: sudo apt-get update && sudo apt-get install -y python3-smbus
-
+        
       - name: Syntax check
         run: python -m py_compile sensor_copier_v3_20251217.py
         
