@@ -86,6 +86,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            ln -sf ./workspace/sensor_copier_v3_20251220.py ./workspace/SensorCopier_current.py
-            echo "$(date): Deployed v3 and updated symlink (after tests passed)" >> ./logs/deploy.log
-            ls -l ./workspace/SensorCopier_current.py >> ./logs/deploy.log
+            cd ~  # ホームディレクトリに確実に移動
+            ln -sf workspace/sensor_copier_v3_20251220.py workspace/SensorCopier_current.py
+            mkdir -p logs
+            echo "$(date): Deployed v3 and updated symlink (after tests passed)" >> logs/deploy.log
+            ls -l workspace/SensorCopier_current.py >> logs/deploy.log
