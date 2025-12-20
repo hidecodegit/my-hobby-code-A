@@ -75,7 +75,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p /home/hideo_81_g/workspace /home/hideo_81_g/logs
+          script: mkdir -p ~/workspace ~/logs
 
       - name: Deploy script to RasPi workspace
         uses: appleboy/scp-action@v0.1.7
@@ -84,7 +84,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: sensor_copier_v3_20251220.py
-          target: /home/hideo_81_g/workspace/
+          target: workspace/
           overwrite: true
 
       - name: Update symlink and logs
@@ -94,7 +94,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/hideo_81_g/workspace
+            cd ~/workspace
             ln -sf sensor_copier_v3_20251220.py SensorCopier_current.py
-            echo "$(date): Deployed v3.20251220 and symlink updated (tests passed)" >> /home/hideo_81_g/logs/deploy.log
-            ls -l SensorCopier_current.py >> /home/hideo_81_g/logs/deploy.log
+            echo "$(date): Deployed v3.20251220 via SCP relative path" >> ~/logs/deploy.log
+            ls -l SensorCopier_current.py >> ~/logs/deploy.log
