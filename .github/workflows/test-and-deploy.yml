@@ -21,6 +21,11 @@ jobs:
       - name: Install smbus2 for CI test
         run: pip install smbus2
      
+      - name: Create dummy directories for CI
+        run: |
+          sudo mkdir -p /home/hideo_81_g/logs
+          sudo chown -R $USER /home/hideo_81_g
+
       - name: Syntax check
         run: python -m py_compile sensor_copier_v3_20251220.py
         
