@@ -41,7 +41,7 @@ jobs:
 
           def test(hour, minute, expected):
               fake_time = datetime(2025, 12, 20, hour, minute)
-              with patch('datetime.datetime.now', return_value=fake_time):
+              with patch('sensor_copier_v3_20251220.datetime.now', return_value=fake_time):
                   result, reason = needs_full_sync()
               assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason}) expected {expected}"
               print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
