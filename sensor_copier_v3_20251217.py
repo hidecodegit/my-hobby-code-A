@@ -2,7 +2,10 @@
 import time
 from datetime import datetime
 import os
-import smbus
+try:
+    import smbus
+except ImportError:
+    import smbus2 as smbus  # CIテスト環境でsmbusがない場合のフォールバック
 import logging
 import subprocess
 import json
