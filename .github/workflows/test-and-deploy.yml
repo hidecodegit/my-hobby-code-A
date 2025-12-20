@@ -74,7 +74,7 @@ jobs:
         with:
           switches: -avz --checksum
           path: sensor_copier_v3_20251220.py
-          remote_path: ./workspace
+          remote_path: ~/workspace/
           remote_host: ${{ secrets.SSH_HOST }}
           remote_user: ${{ secrets.SSH_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
