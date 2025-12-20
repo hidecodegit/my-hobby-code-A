@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '20251217_SensorCopier_v3.py'
+      - 'sensor_copier_v3_20251217.py'
   workflow_dispatch:  # 手動実行可能
 
 jobs:
@@ -19,15 +19,15 @@ jobs:
           python-version: '3.x'
 
       - name: Syntax check
-        run: python -m py_compile 20251217_SensorCopier_v3.py
-
+        run: python -m py_compile sensor_copier_v3_20251217.py
+        
       - name: Unit tests for needs_full_sync (重要バグ防止)
         run: |
           python - << 'PY'
           from datetime import datetime
           import sys
           sys.path.append('.')
-          from 20251217_SensorCopier_v3 import needs_full_sync, FULL_SYNC_INTERVAL_HOURS
+          from sensor_copier_v3_20251217 import needs_full_sync, FULL_SYNC_INTERVAL_HOURS
 
           def test(hour, minute, expected):
               class MockNow:
@@ -70,7 +70,7 @@ jobs:
         uses: burnett01/rsync-deployments@5.2.1
         with:
           switches: -avz --checksum
-          path: 20251217_SensorCopier_v3.py
+          path: sensor_copier_v3_20251217.py
           remote_path: /home/hideo_81_g/workspace/
           remote_host: ${{ secrets.SSH_HOST }}
           remote_user: ${{ secrets.SSH_USER }}
@@ -83,6 +83,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            ln -sf /home/hideo_81_g/workspace/20251217_SensorCopier_v3.py /home/hideo_81_g/workspace/SensorCopier_current.py
+            ln -sf /home/hideo_81_g/workspace/sensor_copier_v3_20251217.py /home/hideo_81_g/workspace/SensorCopier_current.py
             echo "$(date): Deployed v3 and updated symlink (after tests passed)" >> /home/hideo_81_g/logs/deploy.log
             ls -l /home/hideo_81_g/workspace/SensorCopier_current.py >> /home/hideo_81_g/logs/deploy.log
