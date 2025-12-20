@@ -36,17 +36,14 @@ jobs:
           sys.path.append('.')
           from sensor_copier_v3_20251220 import needs_full_sync
 
+          # mock datetime.now using monkeypatch style
+          from datetime import datetime
+          from unittest.mock import patch
+
           def test(hour, minute, expected):
-              # datetime.now をパッチ
-              from datetime import datetime
-              orig_now = datetime.now
-              class FakeDateTime(datetime):
-                  @classmethod
-                  def now(cls):
-                      return cls(2025, 12, 20, hour, minute, 0)
-              datetime.now = FakeDateTime.now
-              result, reason = needs_full_sync()
-              datetime.now = orig_now
+              fake_now = datetime(2025, 12, 20, hour, minute)
+              with patch('datetime.datetime.now', return_value=fake_now):
+                  result, reason = needs_full_sync()
               assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason}) (expected {expected})"
               print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
 
