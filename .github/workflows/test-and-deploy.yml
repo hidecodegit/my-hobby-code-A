@@ -11,8 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      # ラズパイのOSが古くても動くように v3 を使用 (v4はNode20必須でエラーになるため)
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -72,8 +71,18 @@ jobs:
     needs: test  # ← テスト成功時だけデプロイ実行！！
     runs-on: self-hosted  # ラズパイ上のRunnerで実行する設定
     steps:
-      # ラズパイのOSが古くても動くように v3 を使用 (v4はNode20必須でエラーになるため)
-      - uses: actions/checkout@v3
+      - name: Checkout code manually (bypass Node.js)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 古いOSでのNode.jsエラーを回避するため、actions/checkoutを使わずにgitコマンドで取得
+          # 【修正】特定のSHAを直接fetchすると古いGitで失敗するリスクがあるため、
+          # mainブランチを取得してから、目的のコミットへ移動する方式に変更
+          rm -rf .git
+          git init
+          git remote add origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}"
+          git fetch --depth=1 origin main
+          git checkout -qf "${{ github.sha }}"
 
       - name: Deploy locally on RasPi
         run: |
