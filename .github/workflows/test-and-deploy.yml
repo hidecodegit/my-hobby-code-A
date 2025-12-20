@@ -72,8 +72,9 @@ jobs:
     needs: test  # ← テスト成功時だけデプロイ実行！！
     runs-on: self-hosted  # ラズパイ上のRunnerで実行する設定
     steps:
-      - uses: actions/checkout@v4
-
+      # ラズパイのOSが古くても動くように v3 を使用 (v4はNode20必須でエラーになるため)
+      - uses: actions/checkout@v3
+      
       - name: Deploy locally on RasPi
         run: |
           # ラズパイ自身の中でコピーするだけなので超高速・確実
