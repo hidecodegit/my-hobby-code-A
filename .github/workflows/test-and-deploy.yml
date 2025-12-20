@@ -33,21 +33,24 @@ jobs:
         run: |
           python - << 'PY'
           import sys
-          sys.path.append('.')
-          from sensor_copier_v3_20251220 import needs_full_sync
-
+          from unittest.mock import patch
           from datetime import datetime
+          
+          sys.path.append('.')
+          # モジュールをインポート
+          import sensor_copier_v3_20251220
 
           def test(hour, minute, expected):
-              fake_time = datetime(2025, 12, 20, hour, minute)
-              # datetime.nowをモジュールレベルで置き換え
-              from datetime import datetime as dt_module
-              orig_now = dt_module.now
-              dt_module.now = lambda: fake_time
-              result, reason = needs_full_sync()
-              dt_module.now = orig_now
-              assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason}) expected {expected}"
-              print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
+              fake_now = datetime(2025, 12, 20, hour, minute, 0)
+              
+              # モジュール内の 'datetime' クラスをモックに置き換える (これが正解)
+              with patch('sensor_copier_v3_20251220.datetime') as mock_dt:
+                  mock_dt.now.return_value = fake_now
+                  
+                  result, reason = sensor_copier_v3_20251220.needs_full_sync()
+                  
+                  assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason})"
+                  print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
 
           print("Testing needs_full_sync()...")
           test(0, 0, True)
@@ -61,9 +64,9 @@ jobs:
           test(1, 0, False)
           test(3, 59, False)
           test(21, 0, False)
-          print("All needs_full_sync tests PASSED!")
+          print("All needs_full_sync tests PASSED! 🎉")
           PY
-          
+
   deploy:
     needs: test  # ← テスト成功時だけデプロイ実行！！
     runs-on: ubuntu-latest
