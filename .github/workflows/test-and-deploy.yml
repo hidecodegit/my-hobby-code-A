@@ -11,7 +11,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # ラズパイのOSが古くても動くように v3 を使用 (v4はNode20必須でエラーになるため)
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v5
