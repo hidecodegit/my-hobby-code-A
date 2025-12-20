@@ -40,10 +40,12 @@ jobs:
 
           def test(hour, minute, expected):
               fake_time = datetime(2025, 12, 20, hour, minute)
-              orig_now = datetime.now
-              datetime.now = lambda: fake_time
+              # datetime.nowをモジュールレベルで置き換え
+              from datetime import datetime as dt_module
+              orig_now = dt_module.now
+              dt_module.now = lambda: fake_time
               result, reason = needs_full_sync()
-              datetime.now = orig_now
+              dt_module.now = orig_now
               assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason}) expected {expected}"
               print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
 
