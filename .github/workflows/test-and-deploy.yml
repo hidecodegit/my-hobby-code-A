@@ -34,15 +34,16 @@ jobs:
           python - << 'PY'
           import sys
           sys.path.append('.')
-          import sensor_copier_v3_20251220
+          from sensor_copier_v3_20251220 import needs_full_sync
 
-          from unittest.mock import patch
           from datetime import datetime
 
           def test(hour, minute, expected):
               fake_time = datetime(2025, 12, 20, hour, minute)
-              with patch.object(sensor_copier_v3_20251220.datetime, 'now', return_value=fake_time):
-                  result, reason = sensor_copier_v3_20251220.needs_full_sync()
+              orig_now = datetime.now
+              datetime.now = lambda: fake_time
+              result, reason = needs_full_sync()
+              datetime.now = orig_now
               assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason}) expected {expected}"
               print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
 
@@ -60,7 +61,7 @@ jobs:
           test(21, 0, False)
           print("All needs_full_sync tests PASSED!")
           PY
-
+          
   deploy:
     needs: test  # ← テスト成功時だけデプロイ実行！！
     runs-on: ubuntu-latest
