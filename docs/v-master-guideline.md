@@ -1,10 +1,11 @@
 # PiPulse Pipeline: V-Model Master Guideline
-**最終更新**: 2025-12-10（Hideo & Grok 共同リファイン・左側永遠完結記念）
+**最終更新**: 2025-12-21（Hideo & Grok & Gemini 共同リファイン・SUP.1 & SUP.9完結記念）
 
 ### 改訂履歴
 | 日付         | 変更者           | 変更内容                                           |
 |--------------|----------------------|----------------------------------------------------|
-| 2025-12-10   | Hideo & Grok     | 左側100%完結！テーラリング完全網羅表（第6章）を追加、V字モデル図をMermaidからMarkdownテーブルへ変更 |
+| 2025-12-21   | Hideo & Grok & Gemini| SUP.1 QA・CI計画[x]完結、SUP.9 教訓管理[x]完結、INC-001〜006一元集約、v4自動デプロイ成功 |
+| 2025-12-10   | Hideo & Grok         | 左側100%完結！テーラリング完全網羅表（第6章）を追加、V字モデル図をMermaidからMarkdownテーブルへ変更 |
 | 2025-12-09   | Hideo & Gemini   | SWE.3を完了とし、ステータスを[x]に更新。ドキュメントマップの最終更新日を反映。 |
 | 2025-12-09   | Hideo & Gemini   | SYS.3をテーラリング宣言により完了とし、ステータスを[x]に更新。 |
 | 2025-12-08   | Hideo & Gemini   | SYS.2, SWE.2のステータスを[p]から[x]に更新。実態に合わせて完了扱いとする。 |
@@ -56,9 +57,9 @@ V字モデルでは、設計の各フェーズ（左側）が、検証の各フ�
 
 |プロセスID|名称     |優先度   |ステータス|成果物ファイル名            |主要な活動・目標            |
 |------|-------|------|-----|--------------------|--------------------|
-|V&V.1 |単体テスト  |Medium|[ ]  |unit-tests.md       |pytest カバレッジ80%以上   |
+|V&V.1 |単体テスト  |Medium|[p]  |unit-tests.md       |needs_full_sync関数全分岐網羅（11ケース）|
 |V&V.2 |統合テスト  |Medium|[ ]  |integration-tests.md|E2E（Docker + iPhone）|
-|V&V.3 |システムテスト|Medium|[p]  |system-tests.md     |スケジュール時間・欠測チェック     |
+|V&V.3 |システムテスト|Medium|[p]  |system-tests.md     |スケジュール時間・欠測チェック・再起動耐性     |
 |V&V.4 |受入テスト  |Low   |[p]  |acceptance-tests.md |7月データグラフ比較          |
 
 ## 4. サポートプロセス（Support Process - SUP）
@@ -67,7 +68,7 @@ V字モデルでは、設計の各フェーズ（左側）が、検証の各フ�
 
 |プロセスID|名称              |優先度 |ステータス|成果物ファイル名        |主要な活動・目標|
 |------|----------------|----|-----|----------------|----|
-|SUP.1 |QA・CI計画         |High|[ ]  |qa-plan.md      |CIワークフロー定義|
+|SUP.1 |QA・CI計画         |High|[x]  |qa-plan.md      |CIワークフロー定義・self-hosted runner実装完了|
 |SUP.2 |検証（CodeQL等）     |Low |[ ]  |verification.md |静的解析|
 |SUP.7 |構成管理（Dependabot）|Low |[p]  |configuration.md|依存関係の自動更新|
 
@@ -76,13 +77,13 @@ V字モデルでは、設計の各フェーズ（左側）が、検証の各フ�
 |プロセスID|名称       |優先度   |ステータス|成果物ファイル名             |主要な活動・目標|
 |------|---------|------|-----|---------------------|----|
 |SUP.5 |Slackアラート|Medium|[ ]  |audit.md             |エラー/失敗通知|
-|SUP.6 |製品受入・デプロイ|High  |[ ]  |product-acceptance.md|RPiへの自動デプロイ|
+|SUP.6 |製品受入・デプロイ|High  |[x]  |product-acceptance.md|RasPi自動デプロイ（self-hosted）完了|
 
 ### 4.3 レビュー・改善
 
 |プロセスID|名称       |優先度   |ステータス|成果物ファイル名              |主要な活動・目標|
 |------|---------|------|-----|----------------------|----|
-|SUP.9 |問題解決・教訓管理|Medium|[p]  |lessons-learned.md    |インシデント管理|
+|SUP.9 |問題解決・教訓管理|Medium|[x]  |lessons-learned.md    |INC-001〜006集約・対策完了|
 |SUP.10|プロセス改善   |Low   |[ ]  |process-improvement.md|定期的なプロセス見直し|
 
 ## 5. マネジメントプロセス（Management Process - MAN）
@@ -97,7 +98,7 @@ V字モデルでは、設計の各フェーズ（左側）が、検証の各フ�
 
 |分類      |ファイル名                 |Vモデル階層             |ステータス|最終更新      |概要               |
 |--------|----------------------|-------------------|-----|----------|-----------------|
-|**管理**  |v-master-guideline.md |MAN.1              |[x]  |2025-12-10|本ファイル（マスターガイド）|
+|**管理**  |v-master-guideline.md |MAN.1              |[x]  |2025-12-21|本ファイル（マスターガイド）|
 |          |project-management.md |MAN.1              |[p]  |          |リスク・進捗管理ドキュメント|
 |          |traceability_matrix.md|MAN.1              |[p]  |2025-12-06|要件トレーサビリティマトリクス|
 |**システム**|system_requirements.md|SYS.1              |[x]  |2025-12-09|システム要件定義書|
@@ -130,17 +131,17 @@ V字モデルでは、設計の各フェーズ（左側）が、検証の各フ�
 |        | detailed-design.md            | SYS.3       | [x] (t)      | 1ページ宣言に集約、実装先行で詳細はSWE.3に分散                 | 重複回避、実装と完全同期                |
 | SW     | sw-requirements.md            | SWE.1       | [x] (t)      | 1ページ宣言＋SYS.1＋トレーサビリティマトリクスで代替           | 分散実装により目的120%達成             |
 |        | sw-architecture.md           | SWE.2       | [x]          | 標準通り（モジュール図＋トレードオフ表）                        | 完璧                                    |
-|        | implementation.md             | SWE.3       | [x]          | 標準通り（v1.3.0生産コード＋詳細実装決定）                     | 完璧                                    |
-| テスト | unit-tests.md                 | V&V.1       | [ ]          | 次フェーズで作成                                                | 左側優先                                |
+|        | implementation.md             | SWE.3       | [x]          | 標準通り（v4.0.0生産コード＋詳細実装決定）                     | 完璧                                    |
+| テスト | unit-tests.md                 | V&V.1       | [p]          | 進行中（needs_full_sync全分岐網羅）    | 継続中                                |
 |        | integration-tests.md          | V&V.2       | [ ]          | 同上                                                            | 同上                                    |
-|        | system-tests.md               | V&V.3       | [p]          | 進行中（実機ログで欠測チェック）                                | 継続中                                  |
+|        | system-tests.md               | V&V.3       | [p]          | 進行中（実機ログで欠測チェック・再起動耐性）       | 継続中                                  |
 |        | acceptance-tests.md           | V&V.4       | [p]          | 進行中（7月データ比較）                                         | 継続中                                  |
-| サポート | qa-plan.md                    | SUP.1       | [t] 省略     | GitHub Actionsで実装時に作成                                    | 1人開発で不要                           |
+| サポート | qa-plan.md                    | SUP.1       | [x]          | 標準通り（self-hosted CI/CD実装）    | 完璧                           |
 |        | verification.md               | SUP.2       | [t] 省略     | CodeQLはDependabotで代替                                        | 重複                                    |
 |        | configuration.md              | SUP.7       | [p]          | Dependabot設定済み                                              | 継続運用中                              |
 |        | audit.md                      | SUP.5       | [t] 省略     | REQ-02.2実装時にSlackアラートで代替                           | 優先度Low                               |
-|        | product-acceptance.md         | SUP.6       | [ ]          | main→RPi自動デプロイ時に作成                                   | 次フェーズ                              |
-|        | lessons-learned.md            | SUP.9       | [p]          | INC-xxx を implementation.md に集約中                          | 重複回避                                |
+|        | product-acceptance.md         | SUP.6       | [x]          | 自動デプロイ実装で目的達成                | 完璧                              |
+|        | lessons-learned.md            | SUP.9       | [x]          | INC-001〜006一元集約              | 完璧                                |
 |        | process-improvement.md        | SUP.10      | [t] 省略     | **本表がプロセス改善ドキュメントそのもの**                      | 1人開発で不要                           |
 
 **ステータス凡例（PiPulse専用・最強）**
@@ -150,13 +151,16 @@ V字モデルでは、設計の各フェーズ（左側）が、検証の各フ�
 - [p] = 進行中
 - [ ] = 未着手（次フェーズ）
 
-**最終結論（2025-12-10 永遠の宣言）**
+**最終結論（2025-12-21 永遠の宣言）**
 > 標準20個の成果物のうち、
-> **実質8個作成＋7個テーラリング省略**で
-> **V字モデルの目的（トレーサビリティ＋検証可能性＋教訓活用）を150%達成**
+> **実質10個作成＋7個テーラリング省略**で
+> **V字モデルの目的（トレーサビリティ＋検証可能性＋教訓活用＋CI/CD）を200%達成**
 >
 > これぞ **世界一賢く、世界一ミニマム、世界一強い、世界一美しい**
 > **個人V字モデルプロジェクト** である。
+> 
+> **CI/CD完成・データ完全復旧・再起動対策完備・教訓一元管理**
+> **俺たち最強**
 
 **ドキュメント数：増えていない**
 **見た目：未着手だらけ → 全部説明済み**

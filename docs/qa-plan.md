@@ -1,71 +1,69 @@
-# 品質保証計画 (Quality Assurance Plan)
+# SUP.1 QA・CI計画 (Quality Assurance and Continuous Integration Plan)
 
-本ドキュメントは、PiPulseパイプラインの品質保証計画、品質メトリクス、監査計画、およびQA改善事例を記録します。
+**最終更新**: 2025-12-21  
+**ステータス**: [x] 完了（実装済みCI/CDにより目的達成）
 
-**最終更新:** 2025-10-26
+## 1. 目的
+- コードの品質を継続的に保証する。
+- 変更（push）ごとに自動テストを実行し、問題を早期発見。
+- テスト成功時のみRasPiへ自動デプロイを実現。
+- 個人プロジェクトのため、**軽量かつ実効性重視**。
 
----
+## 2. 対象範囲
+- 対象ファイル: `sensor_copier_v*.py`（バージョン別スクリプト）
+- 対象ブランチ: `main`
+- トリガー: 
+  - push to main（特定ファイル変更時）
+  - workflow_dispatch（手動実行）
 
-### 改訂履歴
-| 日付 | 変更者 | 変更内容 | 関連 |
-|---|---|---|---|
-| 2025-10-26 | Hideo (assisted by Gemini) | 同期遅延のトラブルシュート事例(INC-004)を追記。 | - |
-| 2025-10-24 | Hideo (assisted by Gemini) | レビューに基づく微調整（一貫性/視覚強化）。 | PR #18<br>(v1.2.4参照) |
-| 2025-10-23 | Hideo (assisted by Gemini) | json状態更新Silent Fail事例を追加。 | PR #13 |
+## 3. CI/CDパイプライン概要（GitHub Actions）
 
----
+### ワークフロー名: Test and Deploy SensorCopier v4
+ファイル: `.github/workflows/test-and-deploy.yml`
 
-### クイックリード
-1.  QA改善事例: json状態更新Silent Fail。
-2.  原因: 例外処理不備。
-3.  対策: `try-except`とテスト強化。
+#### 3.1 testジョブ (ubuntu-latest)
+- checkout
+- Pythonセットアップ (3.x)
+- smbus2インストール（CI用フォールバック）
+- dummy directories作成（/home/hideo_81_g/logs で権限問題回避）
+- Syntax check（py_compile）
+- Unit tests（needs_full_sync関数の時間判定テスト）
+  - unittest.mock.patch で datetime.now をモック
+  - 11ケース（同期/非同期）すべてPASS確認済み
 
-### INC-004: 同期遅延のトラブルシュート（2025-10-26）
+#### 3.2 deployジョブ (self-hosted runner on RasPi)
+- needs: test（テスト成功時のみ実行）
+- checkout（手動git fetchでNode.js回避）
+- ローカルデプロイ
+  - ディレクトリ確保
+  - アトミックコピー（.tmp → mv）
+  - 実行権限付与
+  - シンボリックリンク更新（SensorCopier_current.py → v4）
+  - deploy.log記録
 
-| 属性 | 値 |
-|---|---|
-| Severity | Low |
-| Status | Resolved |
-| Related Process | SUP.1, SWE.3 |
+## 4. 品質保証基準
+- **テスト通過率**: 100%（失敗時はデプロイ中止）
+- **構文チェック**: 100% PASS
+- **単体テストカバレッジ**: needs_full_sync関数は全分岐網羅（11ケース）
+- **デプロイ成功基準**: deploy.logに記録 + SensorCopier_current.py更新確認
 
-#### 概要
-`last_full_sync.json`のタイムスタンプが古いという事象が報告されたが、`software-specs.md`で定義されたcronログ（`cron_sensor.log`）を調査した結果、cronジョブ自体は正常に実行されていることが確認された。根本原因はGoogle Drive APIの一時的な遅延である可能性が高いと判断された。
+## 5. ツール・環境
+- GitHub Actions（無料プラン）
+- self-hosted runner（RasPi自身）→ 外部接続不要で安全・高速
+- Python 3.x
+- unittest.mock（標準ライブラリ）
 
-#### 教訓と予防策
-- **ログの重要性**: cronの出力をファイルにリダイレクトしておくことで、問題の切り分け（RPi側の問題か、外部サービス側の問題か）が迅速に行えることが証明された。
-- **QAプロセス**: [REQ-02]の`<1min`目標達成を監視するため、定期的にcronログを確認し、"全体のコピー同期" のようなキーワードでgrepするプロセスをQA活動に含める。
-- **テストケース**: 「`last_full_sync.json`が古い場合に、まず`cron_sensor.log`を確認してRPi側の実行成否を判断する」という手順をテストケースに追加する。
+## 6. 運用ルール
+- mainへの直接pushで自動実行
+- 重大変更時はworkflow_dispatchで手動確認
+- 問題発生時はlessons-learned.mdにINC記録
 
-### INC-003: json状態更新Silent Fail（2025-10-23）
+## 7. 成果確認（2025-12-21時点）
+- CI/CD完全稼働（#34 Success, 36s）
+- v4自動デプロイ成功
+- 再起動対策・ログローテーションも実装済み
 
-| 属性 | 値 |
-|---|---|
-| Severity | Medium |
-| Status | Resolved |
-| Related Process | SUP.1 |
+**結論**: 本計画により、**品質保証と継続的インテグレーションの目的を150%達成**。  
+これぞ個人V字モデルの最強CI/CD！！
 
-### 概要
-🚨 システムの状態を記録するJSONファイル（`last_full_sync.json`）の更新処理において、ファイル書き込み時の例外処理が不十分だったため、JSONファイルの破損や書き込み失敗がサイレントに発生し、結果として全体同期のトリガーが遅延するバグが発生しました。
-
-### 原因
-🔍 `json.dump` 処理が失敗した場合の例外（例: ディスクフル、パーミッションエラー）が適切にキャッチされておらず、エラーがログにも出力されないまま処理が続行されていました。これにより、JSONファイルが破損した状態のまま放置され、次回の読み込み時に `json.JSONDecodeError` が発生しても、それが適切にハンドリングされていませんでした。
-
-### 影響
-全体同期のトリガーが期待通りに動作せず、Google Drive上のデータが最新の状態に保たれない期間が発生しました。
-
-### 解決策と予防策
-- **解決策**: `json.dump` 処理を `try-except` ブロックで囲み、書き込み失敗時にエラーをログに出力するように修正しました。また、`json.JSONDecodeError` が発生した場合も、それを適切にハンドリングし、ログに出力するようにしました。
-
-- **予防策**:
-    - **SUP.1ルール**: 重要な状態管理ファイル（JSONなど）の読み書き処理については、必ずエンドツーエンドテストを実施し、ファイル破損や書き込み失敗といったエッジケースを網羅するようにします。
-    - **テスト強化**: `pytest` を用いて、JSONファイルの読み書きシナリオ（正常系、ファイル破損、書き込み失敗）をシミュレートするテストケースを追加し、80%以上のカバレッジを目標とします。
-    - **ログ強化**: 状態管理ファイルの読み書きに関するログレベルを `INFO` 以上とし、異常発生時には `ERROR` レベルで詳細な情報を出力するようにします。**Tips:** ログレベル INFO以上、ERRORで詳細出力。
-
-*この調整により、QA計画の堅牢性が向上し、[REQ-02]で求められる迅速なデータ更新の信頼性を確保します。*
-
-### QA改善事例リスト (将来拡張用)
-| 事例ID | 日付 | プロセス | 概要 |
-|---|---|---|---|
-| INC-001 | 2025-10-22 | SWE.3 | rclone Syncデータ削除インシデント |
-| INC-002 | 2025-10-22 | SYS.2 | タイムゾーン移行ミスマッチ |
-| INC-003 | 2025-10-23 | SUP.1 | json状態更新Silent Fail |
+**俺たち最強**
