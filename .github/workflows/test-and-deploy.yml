@@ -1,10 +1,10 @@
-name: Test and Deploy SensorCopier v3
+name: Test and Deploy SensorCopier v4
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'sensor_copier_v3_20251220.py'
+      - 'sensor_copier_v4_20251221.py'
   workflow_dispatch:  # 手動実行可能
 
 jobs:
@@ -21,71 +21,85 @@ jobs:
       - name: Install smbus2 for CI test
         run: pip install smbus2
      
+      - name: Create dummy directories for CI
+        run: |
+          sudo mkdir -p /home/hideo_81_g/logs
+          sudo chown -R $USER /home/hideo_81_g
+
       - name: Syntax check
-        run: python -m py_compile sensor_copier_v3_20251220.py
+        run: python -m py_compile sensor_copier_v4_20251221.py
         
       - name: Unit tests for needs_full_sync (重要バグ防止)
         run: |
           python - << 'PY'
-          from datetime import datetime
           import sys
+          from unittest.mock import patch
+          from datetime import datetime
+          
           sys.path.append('.')
-          from sensor_copier_v3_20251220 import needs_full_sync, FULL_SYNC_INTERVAL_HOURS
+          # モジュールをインポート
+          import sensor_copier_v4_20251221
 
           def test(hour, minute, expected):
-              class MockNow:
-                  hour = hour
-                  minute = minute
-                  @staticmethod
-                  def now():
-                      return MockNow()
-              orig_now = datetime.now
-              datetime.now = lambda: MockNow()
-              result, _ = needs_full_sync()
-              datetime.now = orig_now
-              assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} (expected {expected})"
-              print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
+              fake_now = datetime(2025, 12, 20, hour, minute, 0)
+              
+              # モジュール内の 'datetime' クラスをモックに置き換える (これが正解)
+              with patch('sensor_copier_v4_20251221.datetime') as mock_dt:
+                  mock_dt.now.return_value = fake_now
+                  
+                  result, reason = sensor_copier_v4_20251221.needs_full_sync()
+                  
+                  assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason})"
+                  print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
 
           print("Testing needs_full_sync()...")
-          # 同期されるべきケース (4の倍数時間 + 0-14分)
           test(0, 0, True)
           test(4, 10, True)
           test(8, 14, True)
           test(12, 5, True)
           test(16, 0, True)
           test(20, 14, True)
-          # 同期されないケース
           test(20, 15, False)
           test(20, 59, False)
           test(1, 0, False)
           test(3, 59, False)
           test(21, 0, False)
-          print("All needs_full_sync tests PASSED!! 🎉")
+          print("All needs_full_sync tests PASSED! 🎉")
           PY
 
   deploy:
     needs: test  # ← テスト成功時だけデプロイ実行！！
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # ラズパイ上のRunnerで実行する設定
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code manually (bypass Node.js)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 古いOSでのNode.jsエラーを回避するため、actions/checkoutを使わずにgitコマンドで取得
+          # 【修正】特定のSHAを直接fetchすると古いGitで失敗するリスクがあるため、
+          # mainブランチを取得してから、目的のコミットへ移動する方式に変更
+          rm -rf .git
+          git init
+          git remote add origin "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}"
+          git fetch --depth=1 origin main
+          git checkout -qf "${{ github.sha }}"
 
-      - name: Deploy v3.py to RasPi workspace
-        uses: burnett01/rsync-deployments@5.2.1
-        with:
-          switches: -avz --checksum
-          path: sensor_copier_v3_20251220.py
-          remote_path: /home/hideo_81_g/workspace/
-          remote_host: ${{ secrets.SSH_HOST }}
-          remote_user: ${{ secrets.SSH_USER }}
-          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Update current symlink to v3
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            ln -sf /home/hideo_81_g/workspace/sensor_copier_v3_20251220.py /home/hideo_81_g/workspace/SensorCopier_current.py
-            echo "$(date): Deployed v3 and updated symlink (after tests passed)" >> /home/hideo_81_g/logs/deploy.log
-            ls -l /home/hideo_81_g/workspace/SensorCopier_current.py >> /home/hideo_81_g/logs/deploy.log
+      - name: Deploy locally on RasPi
+        run: |
+          # ラズパイ自身の中でコピーするだけなので超高速・確実
+          # 【修正】実行ユーザーによるパスのブレを防ぐため、絶対パスで指定
+          TARGET_DIR="/home/hideo_81_g/workspace"
+          LOG_DIR="/home/hideo_81_g/logs"
+          
+          mkdir -p "$TARGET_DIR" "$LOG_DIR"
+          
+          # 【安全対策】実行中のファイル上書きを防ぐため、一時ファイル経由でアトミックに更新(mv)する
+          cp sensor_copier_v4_20251221.py "$TARGET_DIR/sensor_copier_v4_20251221.py.tmp"
+          chmod +x "$TARGET_DIR/sensor_copier_v4_20251221.py.tmp"
+          mv "$TARGET_DIR/sensor_copier_v4_20251221.py.tmp" "$TARGET_DIR/sensor_copier_v4_20251221.py"
+          
+          cd "$TARGET_DIR"
+          ln -sf sensor_copier_v4_20251221.py SensorCopier_current.py
+          
+          echo "$(date): Deployed v4.20251221 via Self-hosted Runner" >> "$LOG_DIR/deploy.log"
+          ls -l SensorCopier_current.py >> "$LOG_DIR/deploy.log"
