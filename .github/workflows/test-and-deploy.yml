@@ -43,6 +43,8 @@ jobs:
           fi
 
       - name: Unit tests for needs_full_sync (重要バグ防止)
+        env:
+          LOG_TO_CONSOLE: "1"  # 【デバッグ用】ログをコンソールに出力してエラー詳細を確認する
         run: |
           python - << 'PY'
           import sys
@@ -93,8 +95,9 @@ jobs:
           print("\nTesting data format compatibility (INC-005)...")
           # I2Cバスと時刻をモック化して、出力フォーマットを検証
           mock_bus = MagicMock()
-          # 正常なステータス(0x18)と適当なデータ(湿度/温度)を返すように設定
-          mock_bus.read_i2c_block_data.return_value = [0x18, 0x80, 0x00, 0x00, 0x80, 0x00, 0x00]
+          # 正常なステータス(0x18)と正常値(湿度50%, 温度25℃付近)を返すように設定
+          # data[3]=0x06 にすることで温度を約25℃にする (0x00だと-43℃で異常値判定されNoneが返るため)
+          mock_bus.read_i2c_block_data.return_value = [0x18, 0x80, 0x00, 0x06, 0x00, 0x00, 0x00]
           
           fake_now = datetime(2025, 7, 28, 12, 34, 56)
 
@@ -102,6 +105,9 @@ jobs:
               mock_now.return_value = fake_now
 
               result = sensor_copier_v5_20251228.read_sensor_data(mock_bus)
+              if result is None:
+                  print("❌ DEBUG: read_sensor_data returned None! Check the logs above for details.")
+              
               expected_prefix = "2025-07-28 12:34:56,"
               assert result.startswith(expected_prefix), f"FAIL: Format mismatch. Expected start with '{expected_prefix}', got '{result}'"
           print("PASS: Data format is correct (JST with seconds).")
