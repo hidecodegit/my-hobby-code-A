@@ -1,10 +1,10 @@
-name: Test and Deploy SensorCopier v4
+name: Test and Deploy SensorCopier v5.1
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'sensor_copier_v4_20251221.py'
+      - 'sensor_copier_v5_20251228.py'
   workflow_dispatch:  # 手動実行可能
 
 jobs:
@@ -27,27 +27,40 @@ jobs:
           sudo chown -R $USER /home/hideo_81_g
 
       - name: Syntax check
-        run: python -m py_compile sensor_copier_v4_20251221.py
+        run: python -m py_compile sensor_copier_v5_20251228.py
         
+      - name: Static Safety Check (INC-001/002)
+        run: |
+          # rclone sync 禁止
+          if grep -r "rclone.*sync" sensor_copier_v5_20251228.py; then
+            echo "FAIL: Dangerous 'rclone sync' detected!"
+            exit 1
+          fi
+          # get_jst_now() 定義以外で datetime.now() が使われていないかチェック
+          if grep "datetime.now(" sensor_copier_v5_20251228.py | grep -v "return datetime.now(JST)"; then
+            echo "FAIL: Use get_jst_now() instead of datetime.now()"
+            exit 1
+          fi
+
       - name: Unit tests for needs_full_sync (重要バグ防止)
         run: |
           python - << 'PY'
           import sys
-          from unittest.mock import patch
+          from unittest.mock import patch, MagicMock
           from datetime import datetime
           
           sys.path.append('.')
           # モジュールをインポート
-          import sensor_copier_v4_20251221
+          import sensor_copier_v5_20251228
 
           def test(hour, minute, expected):
               fake_now = datetime(2025, 12, 20, hour, minute, 0)
               
-              # モジュール内の 'datetime' クラスをモックに置き換える (これが正解)
-              with patch('sensor_copier_v4_20251221.datetime') as mock_dt:
-                  mock_dt.now.return_value = fake_now
-                  
-                  result, reason = sensor_copier_v4_20251221.needs_full_sync()
+              # get_jst_now をモックする (INC-002対応で変更)
+              with patch('sensor_copier_v5_20251228.get_jst_now') as mock_now:
+                  mock_now.return_value = fake_now
+
+                  result, reason = sensor_copier_v5_20251228.needs_full_sync()
                   
                   assert result == expected, f"FAIL: {hour:02d}:{minute:02d} -> {result} ({reason})"
                   print(f"PASS: {hour:02d}:{minute:02d} -> {result}")
@@ -65,6 +78,69 @@ jobs:
           test(3, 59, False)
           test(21, 0, False)
           print("All needs_full_sync tests PASSED! 🎉")
+
+          # --- INC-001: rcloneコマンド安全性テスト ---
+          print("\nTesting rclone command safety (INC-001)...")
+          cmd_file = sensor_copier_v5_20251228.build_rclone_cmd("src", "dst", is_file=True)
+          cmd_dir = sensor_copier_v5_20251228.build_rclone_cmd("src", "dst", is_file=False)
+          
+          for cmd in [cmd_file, cmd_dir]:
+              assert "copy" in cmd, f"FAIL: Command must use 'copy'. Found: {cmd}"
+              assert "sync" not in cmd, f"FAIL: Command must NOT use 'sync' (Data Loss Risk!). Found: {cmd}"
+          print("PASS: rclone commands are safe (copy only).")
+
+          # --- INC-005: データフォーマット互換性テスト ---
+          print("\nTesting data format compatibility (INC-005)...")
+          # I2Cバスと時刻をモック化して、出力フォーマットを検証
+          mock_bus = MagicMock()
+          # 正常なステータス(0x18)と適当なデータ(湿度/温度)を返すように設定
+          mock_bus.read_i2c_block_data.return_value = [0x18, 0x80, 0x00, 0x00, 0x80, 0x00, 0x00]
+          
+          fake_now = datetime(2025, 7, 28, 12, 34, 56)
+
+          with patch('sensor_copier_v5_20251228.get_jst_now') as mock_now:
+              mock_now.return_value = fake_now
+
+              result = sensor_copier_v5_20251228.read_sensor_data(mock_bus)
+              expected_prefix = "2025-07-28 12:34:56,"
+              assert result.startswith(expected_prefix), f"FAIL: Format mismatch. Expected start with '{expected_prefix}', got '{result}'"
+          print("PASS: Data format is correct (JST with seconds).")
+
+          # --- INC-006: DataRestorer 復元テスト ---
+          print("\nTesting DataRestorer behavior (INC-006)...")
+          import shutil
+          import tempfile
+          import os
+
+          with tempfile.TemporaryDirectory() as tmpdir:
+              # 永続ディレクトリ設定
+              persistent_dir = os.path.join(tmpdir, "persistent")
+              ram_dir = os.path.join(tmpdir, "ram")
+              os.makedirs(persistent_dir)
+              os.makedirs(ram_dir)
+
+              # 永続側にダミーデータ準備
+              monthly_persistent = sensor_copier_v5_20251228.get_monthly_filepath(persistent_dir)
+              latest_persistent = os.path.join(persistent_dir, sensor_copier_v5_20251228.LATEST_FILENAME)
+              with open(monthly_persistent, "w") as f:
+                  f.write("2025-12-01 00:00:00,tmp=20.0,hum=50.0\n")
+              with open(latest_persistent, "w") as f:
+                  f.write("2025-12-28 12:00:00,tmp=25.0,hum=60.0\n")
+
+              # RAM側は空の状態をシミュレート（再起動後）
+              # モジュール内の定数を一時的にパッチ
+              with patch('sensor_copier_v5_20251228.RAM_DATA_DIR', ram_dir), \
+                   patch('sensor_copier_v5_20251228.PERSISTENT_DATA_DIR', persistent_dir):
+                  sensor_copier_v5_20251228.restore_ram_from_persistent()
+
+              # 復元されたかassert
+              monthly_ram = sensor_copier_v5_20251228.get_monthly_filepath(ram_dir)
+              latest_ram = os.path.join(ram_dir, sensor_copier_v5_20251228.LATEST_FILENAME)
+              assert os.path.exists(monthly_ram), "月次ファイルがRAMに復元されていない"
+              assert os.path.exists(latest_ram), "latestファイルがRAMに復元されていない"
+              with open(latest_ram) as f:
+                  assert "tmp=25.0" in f.read()
+          print("PASS: DataRestorer correctly restores files on startup.")
           PY
 
   deploy:
@@ -94,12 +170,12 @@ jobs:
           mkdir -p "$TARGET_DIR" "$LOG_DIR"
           
           # 【安全対策】実行中のファイル上書きを防ぐため、一時ファイル経由でアトミックに更新(mv)する
-          cp sensor_copier_v4_20251221.py "$TARGET_DIR/sensor_copier_v4_20251221.py.tmp"
-          chmod +x "$TARGET_DIR/sensor_copier_v4_20251221.py.tmp"
-          mv "$TARGET_DIR/sensor_copier_v4_20251221.py.tmp" "$TARGET_DIR/sensor_copier_v4_20251221.py"
+          cp sensor_copier_v5_20251228.py "$TARGET_DIR/sensor_copier_v5_20251228.py.tmp"
+          chmod +x "$TARGET_DIR/sensor_copier_v5_20251228.py.tmp"
+          mv "$TARGET_DIR/sensor_copier_v5_20251228.py.tmp" "$TARGET_DIR/sensor_copier_v5_20251228.py"
           
           cd "$TARGET_DIR"
-          ln -sf sensor_copier_v4_20251221.py SensorCopier_current.py
+          ln -sf sensor_copier_v5_20251228.py SensorCopier_current.py
           
-          echo "$(date): Deployed v4.20251221 via Self-hosted Runner" >> "$LOG_DIR/deploy.log"
+          echo "$(date): Deployed v5.20251228 via Self-hosted Runner" >> "$LOG_DIR/deploy.log"
           ls -l SensorCopier_current.py >> "$LOG_DIR/deploy.log"
