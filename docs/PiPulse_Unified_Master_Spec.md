@@ -2,9 +2,8 @@
 # (Unified Master Specification)
 
 **Document ID**: PP-UMS-001  
-**Version**: 1.3.0  
-**Version**: 1.3.1  
-**Last Updated**: 2025-12-28  
+**Version**: 1.3.2  
+**Last Updated**: 2025-12-29  
 **Status**: Active / Living Document
 **Author**: Hideo, Grok, Gemini
 
@@ -16,9 +15,7 @@
 **表0-1 改訂履歴 (Document Level)**
 | Date       | Author | Description |
 |:-----------|:-------|:------------|
-| 2025-12-28 | Hideo, Grok, Gemini | **v1.3.1**: INC-006の詳細原因（Pythonガード欠如）とAI過信への教訓を追記し、トレーサビリティを完全化。 |
-| 2025-12-28 | Hideo, Grok, Gemini | **v1.3.0**: Grok提案に基づき、ASPICEプロセス意識を残しつつ可読性を向上させた構成へ全面刷新。 |
-| 2025-12-27 | Hideo, Grok, Gemini | **Consolidation**: `implementation.md` を廃止し、データ構造・フォーマット定義を本ドキュメントに統合。 |
+| 2025-12-29 | Hideo, Grok, Gemini | **v1.3.2**: v5.1.0対策（JST強制・空ファイル復元）反映、詳細改訂履歴セクション新設、モックデータ教訓浸透。 |
 | 2025-12-21 | Hideo, Grok, Gemini | **Re-structure**: プロセスID（MAN, SYS, SWE...）ベースの階層構造に再編。 |
 | 2025-12-21 | Hideo, Grok, Gemini | **Initial Integration**: 既存の全ドキュメント（SYS/SWE/SUP/MAN）を本ファイルに統合。INC-006対応完了版。 |
 
@@ -44,6 +41,15 @@
 - ISO/IEC 15288（システムライフサイクルプロセス）
 - 本プロジェクトGitHubリポジトリ（コード・ワークフロー）
 
+### 0.4 詳細改訂履歴
+本セクションは、各セクションごとの変更前後を記録し、変更の意図を明確にするためのものです。`0.1`のサマリーと合わせて参照してください。
+
+**表0-3 詳細改訂履歴**
+| Section | Before | After | Reason |
+|:---|:---|:---|:---|
+| 7.1 | INC-006の原因が「Cronミス」と簡略化されていた。 | 「Python同期ガード欠如」と詳細化し、8.6への参照を追加。 | 根本原因を正確に記録するため。 |
+| 8.6 | (セクションなし) | INC-006の詳細レポートを新設。 | 経緯と教訓の物語性を保持するため。 |
+
 ---
 
 ## 1. MAN (Management Process) – プロジェクト管理
@@ -65,6 +71,7 @@
 **表1-2 リリース履歴**
 | Version | Date | Summary |
 |:---|:---|:---|
+| **v5.1.0.20251228** | 2025-12-28 | **INC-001/002/005/006対策版**: JST強制、空ファイル復元、CI静的チェック強化。 |
 | **v4.20251221** | 2025-12-21 | **INC-006対策版**: 再起動耐性強化（DataRestorer）、ログ完全復旧機能。 |
 | v2.0.1 | 2025-12-14 | SWE.3完了版。月次ファイル切り替え実装。 |
 | v1.2.0 | 2025-10-22 | `rclone copy` 採用によるデータ消失対策。 |
@@ -140,14 +147,19 @@
 
 #### 3.3.3 同期判定ロジック（needs_full_sync）
 - **課題**: Cronで `0 */4 * * *` と設定すると、REQ-01（15分ごとの計測）が満たせなくなる。また、ガードなしでは4回連続同期が発生する（詳細は **8.6** 参照）。
-- **解決策**: Cronは `*/15` で回し、Pythonコード内で `hour % 4 == 0` かつ `0 <= minute < 15` の場合のみ「全同期」フラグを立てる。
+- **解決策**: Cronは `*/15` で回し、Pythonコード内で `hour % 4 == 0` かつ `0 <= minute < 15` の場合のみ「全同期」フラグを立てる。時刻取得は `get_jst_now()` を使用（システム時刻依存排除）。
 
 #### 3.3.4 再起動耐性（DataRestorer）
 - **INC-006対策**: RAMディスク運用中に再起動すると、未保存データが消え、さらに古い永続データで上書きされるリスクがある。
 - **解決策**: 起動時に永続領域 (`~/sensor_data`) から RAM (`/tmp`) へデータを逆コピーする。
+- **強化策 (v5.1.0)**: 復元条件を「ファイルが存在しない OR **サイズが0バイト**」に拡張。空ファイルによる上書きリスクを防ぐため、空ファイル検知時は警告ログを出力する。
 
 #### 3.3.5 アトミック更新手法
 - **手法**: `.tmp` ファイルに書き込み、`fsync` 後に `os.rename` でアトミックに置き換える。これにより、書き込み途中のデータ破損を防ぐ。
+
+#### 3.3.6 get_jst_now()
+- **目的**: INC-002（タイムゾーン不整合）の完全対策。
+- **機能**: システム時刻設定（UTCなど）に依存せず、コードレベルで `timezone(timedelta(hours=9))` を指定して現在時刻を取得する。
 
 ### 3.4 設計決定事項とトレードオフ
 - **ConfigLoader未実装**: 設定項目が少ないため、ハードコード定数で実装し、1ファイル構成による保守性を優先。
@@ -158,7 +170,7 @@
 ## 4. SWE (Implementation Process) – ソフトウェア実装
 
 ### 4.1 実装仕様
-- **File Name**: `sensor_copier_v5_20251227.py`（次回以降はバージョン日付更新）
+- **File Name**: `sensor_copier_v5_20251228.py`（次回以降はバージョン日付更新）
 - **Language**: Python 3.x
 - **Dependencies**: `smbus2`, `rclone` (external command)
 
@@ -181,7 +193,7 @@
 
 ### 5.2 単体テスト（Unit Test）
 - **Scope**: `needs_full_sync` ロジック、`build_rclone_cmd` の安全性。
-- **Status**: [x] Done (CIで実行中)。
+- **Status**: [x] Done (CIで実行中)。データフォーマットテストには**正常値モックデータ**を使用し、異常値判定によるNone返却を防ぐ（教訓反映）。
 
 ### 5.3 統合・システムテスト計画
 - **Status**: [p] Partial (実機稼働確認)。
@@ -199,7 +211,7 @@
 
 ### 6.1 CI/CDパイプライン（GitHub Actions）
 - **Workflow**: `.github/workflows/test-and-deploy.yml`
-- **Test Scope**: Syntax Check, Unit Test (`needs_full_sync`, `build_rclone_cmd`, Data Format).
+- **Test Scope**: Syntax Check, Static Safety Check (禁止パターン検知), Unit Test (`needs_full_sync`, `build_rclone_cmd`, Data Format).
 - **Policy**: テスト通過時のみデプロイを実行（Quality Gate）。
 
 ### 6.2 監視・アラート計画
@@ -232,6 +244,10 @@
 ### 7.2 プロセス改善履歴
 - **v1.3.0**: ASPICEプロセス意識を残しつつ、読みやすさと保守性を向上させる構成へ全面刷新。
 - **INC-006教訓**: **AIレビューは静的中心。動的テスト（再起動/ガード）と要件トレードオフを人間判断**。
+- **新教訓 (2025-12-29)**:
+  - 原因「うっかりした」（コミット漏れ、異常値モック）
+  - 結果「びっくりした」（CI連続失敗）
+  - 対策「しっかりする」（CIログで原因特定、正常値モック必須化）
 - **次なるステップ**: 過去のINCをテストで未然防止できていなかった教訓を踏まえ、**テスト自体の強化**と、**テスト容易性（Testability）向上のためのコード改修（リファクタリング）**を最優先事項として推進する。
 
 ---
@@ -249,12 +265,28 @@
 - **Bandwidth Limit**: `200k`
 
 ### 8.3 主要コードスニペット
+**get_jst_now関数 (INC-002対策)**
+```python
+def get_jst_now():
+    """現在時刻(JST)を取得する。システム時刻設定に依存せずJSTを強制する。"""
+    return datetime.now(timezone(timedelta(hours=9), 'JST'))
+```
+
 **needs_full_sync関数 (INC-006対策)**
 ```python
 def needs_full_sync():
-    now = datetime.now()
+    now = get_jst_now()
     # 4時間ごとの枠、かつその枠の最初の15分間だけTrue
     return (now.hour % 4 == 0) and (0 <= now.minute < 15)
+```
+
+**DataRestorer 空ファイル対策抜粋 (v5.1.0)**
+```python
+    if not os.path.exists(monthly_path_ram):
+        should_restore_monthly = True
+    elif os.path.getsize(monthly_path_ram) == 0:
+        logger.warning(f"RAM上の月次ファイルが空(0byte)です。破損リスクのため復元対象とします: {monthly_path_ram}")
+        should_restore_monthly = True
 ```
 
 ### 8.4 将来予定機能リスト
@@ -285,3 +317,4 @@ def needs_full_sync():
 
 > **We are Strongest.**
 > 本プロジェクトは、ASPICEプロセスを個人規模にテーラリングし、教訓駆動設計により堅牢な再起動耐性と完全自動化を実現した。
+> うっかりをびっくりせず、しっかり防ぐシステムへと進化した。
