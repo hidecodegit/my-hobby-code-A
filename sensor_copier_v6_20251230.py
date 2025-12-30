@@ -197,18 +197,6 @@ def restore_ram_from_persistent():
         except Exception as e:
             logger.error(f"月次ファイル復元失敗: {e}")
 
-    # v6.0.0: latestファイルは月次ファイルから動的に生成するため、ここでの復元は必須ではないが、
-    # 念のため復元しておくと起動直後の参照に役立つ可能性があるため維持する。
-    latest_path_ram = os.path.join(RAM_DATA_DIR, LATEST_FILENAME)
-    latest_path_persistent = os.path.join(PERSISTENT_DATA_DIR, LATEST_FILENAME)
-
-    if not os.path.exists(latest_path_ram) and os.path.exists(latest_path_persistent):
-        try:
-            shutil.copy2(latest_path_persistent, latest_path_ram)
-            logger.info("最新データファイル復元成功。")
-        except Exception as e:
-            logger.error(f"最新データファイル復元失敗: {e}")
-
 def update_latest_file(monthly_filepath, latest_filepath, max_lines=32):
     """
     v6.0.0 New Feature: 月次ファイルから直近のデータを抽出し、latestファイルを更新する。

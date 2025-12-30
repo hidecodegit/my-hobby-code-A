@@ -101,6 +101,10 @@ class TestSensorCopier(unittest.TestCase):
             with patch('sensor_copier_v6_20251230.RAM_DATA_DIR', ram_dir), \
                  patch('sensor_copier_v6_20251230.PERSISTENT_DATA_DIR', persistent_dir):
                 restore_ram_from_persistent()
+                
+                # v6.0.0: latestは月次ファイルから再生成されるため、手動で呼び出して検証
+                monthly_r = get_monthly_filepath(ram_dir)
+                update_latest_file(monthly_r, latest_r)
 
             # 復元確認
             monthly_r = get_monthly_filepath(ram_dir)
