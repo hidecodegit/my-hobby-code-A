@@ -31,15 +31,12 @@ jobs:
     needs: test
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Get script filename
-        id: script
-        run: echo "filename=$(ls sensor_copier_v6_*.py)" >> $GITHUB_OUTPUT
-
-      - name: Deploy on RasPi
+      - name: Manual git pull and deploy
         run: |
-          SCRIPT_FILENAME=${{ steps.script.outputs.filename }}
+          cd /home/hideo_81_g/workspace/my-hobby-code-A  # リポジトリパスに変更
+          git pull origin main
+
+          SCRIPT_FILENAME=$(ls sensor_copier_v6_*.py)
           TARGET_DIR="/home/hideo_81_g/workspace"
           LOG_DIR="/home/hideo_81_g/logs"
           mkdir -p "$TARGET_DIR" "$LOG_DIR"
