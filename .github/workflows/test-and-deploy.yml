@@ -33,7 +33,6 @@ jobs:
     steps:
       - name: Manual git pull and deploy
         run: |
-          cd /home/hideo_81_g/workspace/my-hobby-code-A  # リポジトリパスに変更
           git pull origin main
 
           SCRIPT_FILENAME=$(ls sensor_copier_v6_*.py)
