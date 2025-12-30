@@ -9,7 +9,7 @@ import shutil
 # プロジェクトルートをパスに追加（CIでimport可能にする）
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sensor_copier_v5_20251228 import (
+from sensor_copier_v5_20251230 import (
     needs_full_sync,
     get_jst_now,
     build_rclone_cmd,
@@ -35,7 +35,7 @@ class TestSensorCopier(unittest.TestCase):
         for hour, minute in sync_cases:
             with self.subTest(hour=hour, minute=minute):
                 fake_now = datetime(2025, 12, 29, hour, minute, tzinfo=JST)
-                with patch('sensor_copier_v5_20251228.get_jst_now', return_value=fake_now):
+                with patch('sensor_copier_v5_20251230.get_jst_now', return_value=fake_now):
                     self.assertTrue(needs_full_sync()[0])
 
         # 同期すべきでない代表ケース
@@ -43,7 +43,7 @@ class TestSensorCopier(unittest.TestCase):
         for hour, minute in no_sync_cases:
             with self.subTest(hour=hour, minute=minute):
                 fake_now = datetime(2025, 12, 29, hour, minute, tzinfo=JST)
-                with patch('sensor_copier_v5_20251228.get_jst_now', return_value=fake_now):
+                with patch('sensor_copier_v5_20251230.get_jst_now', return_value=fake_now):
                     self.assertFalse(needs_full_sync()[0])
 
     def test_build_rclone_cmd_always_uses_copy_never_sync(self):
@@ -62,7 +62,7 @@ class TestSensorCopier(unittest.TestCase):
         mock_bus.read_i2c_block_data.return_value = MOCK_I2C_NORMAL
 
         fake_now = datetime(2025, 7, 28, 12, 34, 56, tzinfo=JST)
-        with patch('sensor_copier_v5_20251228.get_jst_now', return_value=fake_now):
+        with patch('sensor_copier_v5_20251230.get_jst_now', return_value=fake_now):
             result = read_sensor_data(mock_bus)
 
         self.assertIsInstance(result, str)
@@ -97,8 +97,8 @@ class TestSensorCopier(unittest.TestCase):
             open(latest_r, "w").close()  # 0byteファイル
 
             # 復元実行
-            with patch('sensor_copier_v5_20251228.RAM_DATA_DIR', ram_dir), \
-                 patch('sensor_copier_v5_20251228.PERSISTENT_DATA_DIR', persistent_dir):
+            with patch('sensor_copier_v5_20251230.RAM_DATA_DIR', ram_dir), \
+                 patch('sensor_copier_v5_20251230.PERSISTENT_DATA_DIR', persistent_dir):
                 restore_ram_from_persistent()
 
             # 復元確認

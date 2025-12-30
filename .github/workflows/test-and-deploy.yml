@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'sensor_copier_v5_20251228.py'
+      - 'sensor_copier_v5_20251230.py'
       - 'tests/**'
   workflow_dispatch:
 
@@ -43,10 +43,10 @@ jobs:
           LOG_DIR="/home/hideo_81_g/logs"
           mkdir -p "$TARGET_DIR" "$LOG_DIR"
 
-          cp sensor_copier_v5_20251228.py "$TARGET_DIR/sensor_copier_v5_20251228.py.tmp"
-          chmod +x "$TARGET_DIR/sensor_copier_v5_20251228.py.tmp"
-          mv "$TARGET_DIR/sensor_copier_v5_20251228.py.tmp" "$TARGET_DIR/sensor_copier_v5_20251228.py"
+          cp sensor_copier_v5_20251230.py "$TARGET_DIR/sensor_copier_v5_20251230.py.tmp"
+          chmod +x "$TARGET_DIR/sensor_copier_v5_20251230.py.tmp"
+          mv "$TARGET_DIR/sensor_copier_v5_20251230.py.tmp" "$TARGET_DIR/sensor_copier_v5_20251230.py"
 
-          ln -sf sensor_copier_v5_20251228.py SensorCopier_current.py
+          ln -sf sensor_copier_v5_20251230.py "$TARGET_DIR/SensorCopier_current.py"
 
-          echo "$(date): Deployed v5.20251228 (unittest)" &gt;&gt; "$LOG_DIR/deploy.log"
+          echo "$(date): Deployed v5.20251230 (unittest)" &gt;&gt; "$LOG_DIR/deploy.log"
