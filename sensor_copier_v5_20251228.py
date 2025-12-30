@@ -16,7 +16,9 @@ __version__ = "5.1.0"  # v5.1.0: JST強制・空ファイル対策版 (Lite)
 
 # ログ設定
 LOG_DIR = "/home/hideo_81_g/logs"
-os.makedirs(LOG_DIR, exist_ok=True)
+# CI環境ではログディレクトリ作成をスキップ (PermissionError回避)
+if os.getenv("GITHUB_ACTIONS") != "true":
+    os.makedirs(LOG_DIR, exist_ok=True)
 
 # ログローテーション設定 (SDカード容量圧迫防止)
 # maxBytes=1MB, backupCount=3世代まで保存
@@ -40,11 +42,14 @@ logger.info(f"--- SensorCopier v{__version__} 起動 ---")
 
 # RAMバッファ (高速書き込み用)
 RAM_DATA_DIR = "/tmp/sensor_data"
-os.makedirs(RAM_DATA_DIR, exist_ok=True)
+if os.getenv("GITHUB_ACTIONS") != "true":
+    os.makedirs(RAM_DATA_DIR, exist_ok=True)
 
 # 永続ディレクトリ (停電耐性用)
 PERSISTENT_DATA_DIR = "/home/hideo_81_g/sensor_data"
-os.makedirs(PERSISTENT_DATA_DIR, exist_ok=True)
+if os.getenv("GITHUB_ACTIONS") != "true":
+    os.makedirs(PERSISTENT_DATA_DIR, exist_ok=True)
+
 
 LATEST_FILENAME = "latest_temp_humid.txt"
 
