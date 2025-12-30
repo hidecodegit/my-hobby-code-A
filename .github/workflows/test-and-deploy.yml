@@ -1,12 +1,14 @@
-name: Test and Deploy SensorCopier v5
+name: Test and Deploy SensorCopier v6
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'sensor_copier_v5_20251230.py'
+      - 'sensor_copier_v6_*.py'
       - 'tests/**'
   workflow_dispatch:
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
@@ -29,24 +31,23 @@ jobs:
     needs: test
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        run: |
-          rm -rf .git
-          git init
-          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-          git fetch --depth=1 origin main
-          git checkout -qf "${{ github.sha }}"
+      - uses: actions/checkout@v4
+
+      - name: Get script filename
+        id: script
+        run: echo "filename=$(ls sensor_copier_v6_*.py)" >> $GITHUB_OUTPUT
 
       - name: Deploy on RasPi
         run: |
+          SCRIPT_FILENAME=${{ steps.script.outputs.filename }}
           TARGET_DIR="/home/hideo_81_g/workspace"
           LOG_DIR="/home/hideo_81_g/logs"
           mkdir -p "$TARGET_DIR" "$LOG_DIR"
 
-          cp sensor_copier_v5_20251230.py "$TARGET_DIR/sensor_copier_v5_20251230.py.tmp"
-          chmod +x "$TARGET_DIR/sensor_copier_v5_20251230.py.tmp"
-          mv "$TARGET_DIR/sensor_copier_v5_20251230.py.tmp" "$TARGET_DIR/sensor_copier_v5_20251230.py"
+          cp "$SCRIPT_FILENAME" "$TARGET_DIR/$SCRIPT_FILENAME.tmp"
+          chmod +x "$TARGET_DIR/$SCRIPT_FILENAME.tmp"
+          mv "$TARGET_DIR/$SCRIPT_FILENAME.tmp" "$TARGET_DIR/$SCRIPT_FILENAME"
 
-          ln -sf sensor_copier_v5_20251230.py "$TARGET_DIR/SensorCopier_current.py"
+          ln -sf "$SCRIPT_FILENAME" "$TARGET_DIR/SensorCopier_current.py"
 
-          echo "$(date): Deployed v5.20251230 (unittest)" >> "$LOG_DIR/deploy.log"
+          echo "$(date): Deployed $SCRIPT_FILENAME (unittest)" >> "$LOG_DIR/deploy.log"

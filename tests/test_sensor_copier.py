@@ -9,7 +9,7 @@ import shutil
 # プロジェクトルートをパスに追加（CIでimport可能にする）
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sensor_copier_v5_20251230 import (
+from sensor_copier_v6_20251230 import (
     needs_full_sync,
     get_jst_now,
     build_rclone_cmd,
@@ -17,6 +17,7 @@ from sensor_copier_v5_20251230 import (
     restore_ram_from_persistent,
     get_monthly_filepath,
     LATEST_FILENAME,
+    update_latest_file,
 )
 
 # === モックデータ定数（モックうっかり防止）===
@@ -35,7 +36,7 @@ class TestSensorCopier(unittest.TestCase):
         for hour, minute in sync_cases:
             with self.subTest(hour=hour, minute=minute):
                 fake_now = datetime(2025, 12, 29, hour, minute, tzinfo=JST)
-                with patch('sensor_copier_v5_20251230.get_jst_now', return_value=fake_now):
+                with patch('sensor_copier_v6_20251230.get_jst_now', return_value=fake_now):
                     self.assertTrue(needs_full_sync()[0])
 
         # 同期すべきでない代表ケース
@@ -43,7 +44,7 @@ class TestSensorCopier(unittest.TestCase):
         for hour, minute in no_sync_cases:
             with self.subTest(hour=hour, minute=minute):
                 fake_now = datetime(2025, 12, 29, hour, minute, tzinfo=JST)
-                with patch('sensor_copier_v5_20251230.get_jst_now', return_value=fake_now):
+                with patch('sensor_copier_v6_20251230.get_jst_now', return_value=fake_now):
                     self.assertFalse(needs_full_sync()[0])
 
     def test_build_rclone_cmd_always_uses_copy_never_sync(self):
@@ -62,7 +63,7 @@ class TestSensorCopier(unittest.TestCase):
         mock_bus.read_i2c_block_data.return_value = MOCK_I2C_NORMAL
 
         fake_now = datetime(2025, 7, 28, 12, 34, 56, tzinfo=JST)
-        with patch('sensor_copier_v5_20251230.get_jst_now', return_value=fake_now):
+        with patch('sensor_copier_v6_20251230.get_jst_now', return_value=fake_now):
             result = read_sensor_data(mock_bus)
 
         self.assertIsInstance(result, str)
@@ -97,8 +98,8 @@ class TestSensorCopier(unittest.TestCase):
             open(latest_r, "w").close()  # 0byteファイル
 
             # 復元実行
-            with patch('sensor_copier_v5_20251230.RAM_DATA_DIR', ram_dir), \
-                 patch('sensor_copier_v5_20251230.PERSISTENT_DATA_DIR', persistent_dir):
+            with patch('sensor_copier_v6_20251230.RAM_DATA_DIR', ram_dir), \
+                 patch('sensor_copier_v6_20251230.PERSISTENT_DATA_DIR', persistent_dir):
                 restore_ram_from_persistent()
 
             # 復元確認
@@ -107,6 +108,49 @@ class TestSensorCopier(unittest.TestCase):
             self.assertGreater(os.path.getsize(monthly_r), 0)
             self.assertGreater(os.path.getsize(latest_r), 0)
 
+    def test_update_latest_file_logic(self):
+        """v6新機能: 月次ファイルから直近32行を抽出してlatestを生成する"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            monthly_file = os.path.join(tmpdir, "monthly.txt")
+            latest_file = os.path.join(tmpdir, "latest.txt")
+
+            # Case 1: 32行未満 (10行)
+            lines_small = [f"line {i}\n" for i in range(10)]
+            with open(monthly_file, "w") as f:
+                f.writelines(lines_small)
+            
+            result = update_latest_file(monthly_file, latest_file, max_lines=32)
+            self.assertTrue(result)
+            with open(latest_file, "r") as f:
+                content = f.readlines()
+            self.assertEqual(len(content), 10)
+            self.assertEqual(content, lines_small)
+
+            # Case 2: 32行以上 (50行)
+            lines_large = [f"line {i}\n" for i in range(50)]
+            with open(monthly_file, "w") as f:
+                f.writelines(lines_large)
+            
+            result = update_latest_file(monthly_file, latest_file, max_lines=32)
+            self.assertTrue(result)
+            with open(latest_file, "r") as f:
+                content = f.readlines()
+            self.assertEqual(len(content), 32)
+            # 末尾32行と一致することを確認
+            self.assertEqual(content, lines_large[-32:])
+
+            # Case 3: 月次ファイルが存在しない → latestは空ファイルになる
+            if os.path.exists(monthly_file):
+                os.remove(monthly_file)
+            
+            # latestファイルが残っている場合を想定して削除（クリーン状態）
+            if os.path.exists(latest_file):
+                os.remove(latest_file)
+            
+            result = update_latest_file(monthly_file, latest_file, max_lines=32)
+            self.assertTrue(result)  # 実装上は成功扱い
+            self.assertTrue(os.path.exists(latest_file))
+            self.assertEqual(os.path.getsize(latest_file), 0)  # 空ファイルであることを明示検証
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
