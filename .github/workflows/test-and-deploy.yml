@@ -49,4 +49,4 @@ jobs:
 
           ln -sf sensor_copier_v5_20251230.py "$TARGET_DIR/SensorCopier_current.py"
 
-          echo "$(date): Deployed v5.20251230 (unittest)" &gt;&gt; "$LOG_DIR/deploy.log"
+          echo "$(date): Deployed v5.20251230 (unittest)" >> "$LOG_DIR/deploy.log"
